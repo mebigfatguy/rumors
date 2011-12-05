@@ -29,6 +29,7 @@ public class RumorsImpl implements Rumors {
 	
 	private int dynamicPort = DEFAULT_DYNAMIC_PORT;
 	private List<TcpEndpoint> endpoints = new ArrayList<TcpEndpoint>();
+	private int[] broadcastDelays = new int[] { 100,5000,5000,5000,60000 };
 	
 	private final Object sync = new Object();
 	private Thread broadcastThread;
@@ -76,6 +77,18 @@ public class RumorsImpl implements Rumors {
 		endpoints = new ArrayList<TcpEndpoint>(tcpEndpoints);
 	}
 	
+
+	public void setBroadcastDelay(String value) {
+		String[] delays = value.split(",");
+		broadcastDelays = new int[delays.length];
+		
+		int i = 0;
+		for (String delay : delays) {
+			broadcastDelays[i++] = Integer.parseInt(delay);
+		}
+		
+	}
+	
 	private class BroadcastRunnable implements Runnable {
 		@Override
 		public void run() {
@@ -93,5 +106,6 @@ public class RumorsImpl implements Rumors {
 			}
 		}
 	}
+
 
 }

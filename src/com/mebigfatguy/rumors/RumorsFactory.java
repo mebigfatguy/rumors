@@ -98,8 +98,10 @@ public class RumorsFactory {
 			}
 			rumors.setStaticEndpoints(endpoints);
 			
-			xpe = xp.compile("/ru:rumors/startup");
-			Element e = (Element) xpe.evaluate(d, XPathConstants.NODE);
+			xpe = xp.compile("/ru:rumors/broadcast/@delay");
+			attr = (Attr) xpe.evaluate(d, XPathConstants.NODE);
+			
+			rumors.setBroadcastDelay(attr.getValue());
 			
 			
 		} catch (Exception e) {

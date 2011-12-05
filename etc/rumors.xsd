@@ -27,8 +27,7 @@
 		<xsd:sequence>
 			<xsd:element name="dynamic" type="ru:DynamicType" minOccurs="0"/>
 			<xsd:element name="static" type="ru:StaticType" minOccurs="0"/>
-			<xsd:element name="startup" type="ru:StartUpType" minOccurs="0"/>
-			<xsd:element name="ping" type="ru:PingType" minOccurs="0"/>
+			<xsd:element name="broadcast" type="ru:BroadcastType" minOccurs="0"/>
 		</xsd:sequence>
 	</xsd:complexType>
 	
@@ -49,17 +48,16 @@
 		<xsd:attribute name="port" type="xsd:nonNegativeInteger"/>
 	</xsd:complexType>
 	
-	<xsd:complexType name="StartUpType">
+	<xsd:complexType name="BroadcastType">
 		<xsd:sequence/>
-		<xsd:attribute name="delay" type="xsd:nonNegativeInteger" default="100"/>			
-		<xsd:attribute name="repeats" type="xsd:nonNegativeInteger" default="5"/>			
-		<xsd:attribute name="interval" type="xsd:nonNegativeInteger" default="5000"/>		
+		<xsd:attribute name="delay" type="ru:DelayType"/>
 	</xsd:complexType>
 	
-	<xsd:complexType name="PingType">
-		<xsd:sequence/>
-		<xsd:attribute name="delay" type="xsd:nonNegativeInteger" default="60000"/>			
-	</xsd:complexType>
+	<xsd:simpleType name="DelayType">
+		<xsd:restriction base="xsd:string">
+			<xsd:pattern value="[0-9]+(,[0-9]+)*"/>
+		</xsd:restriction>
+	</xsd:simpleType>
 
 	<xsd:element name="rumors" type="ru:RumorsType"/>
 </xsd:schema>
