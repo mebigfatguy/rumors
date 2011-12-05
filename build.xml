@@ -25,6 +25,7 @@
     <property name="src.dir" value="${basedir}/src"/>
     <property name="classes.dir" value="${basedir}/classes"/>
     <property name="etc.dir" value="${basedir}/etc"/>
+	<property name="lib.dir" value="${basedir}/lib" />
     <property name="javadoc.dir" value="${basedir}/javadoc"/>
     <property name="javac.source" value="1.6"/>
     <property name="javac.target" value="1.6"/>
@@ -32,8 +33,23 @@
     <property name="javac.debug" value="on"/>
 	<property name="rumors.version" value="0.0.1"/>
 	
-    <path id="rumors.classpath">
-    </path>
+	<property name="junit.version" value="4.10" />
+
+	<property name="junit-url" value="http://repo1.maven.org/maven2/junit/junit/${junit.version}/junit-${junit.version}.jar" />
+
+	<target name="junit-check">
+		<available file="${basedir}/lib/junit-${junit.version}.jar" property="junit-exists" />
+	</target>
+
+	<target name="install-junit" depends="junit-check" unless="junit-exists" description="installs junit.jar into lib">
+		<get src="${junit-url}" dest="${lib.dir}/junit-${junit.version}.jar" verbose="true" ignoreerrors="true" />
+	</target>
+
+	<target name="pull" depends="install-junit" description="pull 3rdparty jars to the lib directory" />
+	
+	<path id="rumors.classpath">
+		<pathelement location="${lib.dir}/junit-${junit.version}.jar" />
+	</path>
 	
     <target name="clean" description="removes all generated collateral">
         <delete dir="${classes.dir}"/>
@@ -45,6 +61,7 @@
     <target name="-init" description="prepares repository for a build">
         <mkdir dir="${classes.dir}"/>
         <mkdir dir="${javadoc.dir}"/>
+		<mkdir dir="${lib.dir}" />
     	<copy file="${etc.dir}/rumors.xsd" tofile="${classes.dir}"/>
     </target>
 	
@@ -67,7 +84,7 @@
         </javac>
     </target>
 	
-    <target name="build" depends="clean, -init, validate, compile" description="compiles the code">
+    <target name="build" depends="clean, -init, pull, validate, compile" description="compiles the code">
     </target>
 	
 	<target name="jar" depends="build" description="produces the rumors jar file">
