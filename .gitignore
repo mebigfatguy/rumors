@@ -1,0 +1,6 @@
+classes
+javadoc
+*.zip
+*.jar
+*~
+*.orig
