@@ -17,10 +17,20 @@
  */
 package com.mebigfatguy.rumors;
 
+import java.io.BufferedInputStream;
+import java.io.InputStream;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.w3c.dom.Document;
+
+import com.mebigfatguy.rumors.aux.Closer;
 import com.mebigfatguy.rumors.impl.RumorsImpl;
 
 public class RumorsFactory {
 
+	public static final String RUMORS_FILE = "/rumors.xml";
 	private static final Rumors rumors;
 	
 	static {
@@ -37,5 +47,21 @@ public class RumorsFactory {
 	
 	private static void initializeFromRumorsFile() {
 		
+		InputStream is = null;
+		
+		try {
+			is = new BufferedInputStream(RumorsFactory.class.getResourceAsStream(RUMORS_FILE));
+			
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			dbf.setNamespaceAware(true);
+			dbf.setValidating(true);
+			DocumentBuilder db = dbf.newDocumentBuilder();
+			Document d = db.parse(is);
+			
+		} catch (Exception e) {
+			
+		} finally {
+			Closer.close(is);
+		}
 	}
 }
