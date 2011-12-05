@@ -25,19 +25,45 @@ import com.mebigfatguy.rumors.TcpEndpoint;
 
 public class RumorsImpl implements Rumors {
 
-	private int dynamicPort;
-	private List<TcpEndpoint> endpoints;
+	private static final int DEFAULT_DYNAMIC_PORT = 13531;
+	
+	private int dynamicPort = DEFAULT_DYNAMIC_PORT;
+	private List<TcpEndpoint> endpoints = new ArrayList<TcpEndpoint>();
+	
+	private final Object sync = new Object();
+	private Thread broadcastThread;
+	private Thread receiveThread;
+	private final boolean running = false;
+
 	
 	@Override
 	public void begin() {
-		// TODO Auto-generated method stub
-
+		synchronized(sync) {
+			if (!running) {
+				broadcastThread = new Thread(new BroadcastRunnable());
+				broadcastThread.start();
+				receiveThread = new Thread(new ReceiveRunnable());
+				receiveThread.start();
+			}
+		}
 	}
 
 	@Override
 	public void end() {
-		// TODO Auto-generated method stub
-
+		synchronized(sync) {
+			if (running) {
+				try {
+					broadcastThread.interrupt();
+					broadcastThread.join();
+					receiveThread.interrupt();
+					receiveThread.join();
+				} catch (InterruptedException ie) {
+				} finally {
+					broadcastThread = null;
+					receiveThread = null;
+				}
+			}
+		}
 	}
 
 	public void setDynamicPort(int port) {
@@ -46,6 +72,24 @@ public class RumorsImpl implements Rumors {
 
 	public void setStaticEndpoints(List<TcpEndpoint> tcpEndpoints) {
 		endpoints = new ArrayList<TcpEndpoint>(tcpEndpoints);
+	}
+	
+	private class BroadcastRunnable implements Runnable {
+		@Override
+		public void run() {
+			while (!Thread.interrupted()) {
+				
+			}
+		}
+	}
+	
+	private class ReceiveRunnable implements Runnable {
+		@Override
+		public void run() {
+			while (!Thread.interrupted()) {
+				
+			}
+		}
 	}
 
 }
