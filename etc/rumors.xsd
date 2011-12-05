@@ -17,14 +17,18 @@
  * under the License. 
  */
  -->
- <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+ <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+             xmlns:ru="http://rumors.mebigfatguy.com/1.0/rumors"
+             targetNamespace="http://rumors.mebigfatguy.com/1.0/rumors"
+             elementFormDefault="unqualified"
+             attributeFormDefault="unqualified">
 
 	<xsd:complexType name="RumorsType">
 		<xsd:sequence>
-			<xsd:element name="dynamic" type="DynamicType" minOccurs="0"/>
-			<xsd:element name="static" type="StaticType" minOccurs="0"/>
-			<xsd:element name="startup" type="StartUpType" minOccurs="0"/>
-			<xsd:element name="ping" type="PingType" minOccurs="0"/>
+			<xsd:element name="dynamic" type="ru:DynamicType" minOccurs="0"/>
+			<xsd:element name="static" type="ru:StaticType" minOccurs="0"/>
+			<xsd:element name="startup" type="ru:StartUpType" minOccurs="0"/>
+			<xsd:element name="ping" type="ru:PingType" minOccurs="0"/>
 		</xsd:sequence>
 	</xsd:complexType>
 	
@@ -35,7 +39,7 @@
 	
 	<xsd:complexType name="StaticType">
 		<xsd:sequence>
-			<xsd:element name="tcp" type="TCPType" maxOccurs="unbounded"/>
+			<xsd:element name="tcp" type="ru:TCPType" maxOccurs="unbounded"/>
 		</xsd:sequence>
 	</xsd:complexType>
 	
@@ -57,5 +61,5 @@
 		<xsd:attribute name="delay" type="xsd:nonNegativeInteger" default="60000"/>			
 	</xsd:complexType>
 
-	<xsd:element name="rumors" type="RumorsType"/>
+	<xsd:element name="rumors" type="ru:RumorsType"/>
 </xsd:schema>

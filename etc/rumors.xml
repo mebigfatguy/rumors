@@ -17,7 +17,9 @@
  * under the License. 
  */
  -->
- <rumors>
+ <ru:rumors xmlns:ru="http://rumors.mebigfatguy.com/1.0/rumors" 
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://rumors.mebigfatguy.com/1.0/rumors http://rumors.mebigfatguy.com/1.0/rumors.xsd">
 	<dynamic port="13531"/>
 	<static>
 		<tcp ip="10.140.179.109" port="23532"/>
@@ -25,4 +27,4 @@
 	</static>
 	<startup delay="100" repeats="5" interval="5000"/>
 	<ping delay="60000"/>
-</rumors>
+</ru:rumors>
