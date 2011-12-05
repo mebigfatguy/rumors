@@ -33,7 +33,7 @@ public class RumorsImpl implements Rumors {
 	private final Object sync = new Object();
 	private Thread broadcastThread;
 	private Thread receiveThread;
-	private final boolean running = false;
+	private boolean running = false;
 
 	
 	@Override
@@ -44,6 +44,7 @@ public class RumorsImpl implements Rumors {
 				broadcastThread.start();
 				receiveThread = new Thread(new ReceiveRunnable());
 				receiveThread.start();
+				running = true;
 			}
 		}
 	}
@@ -54,13 +55,14 @@ public class RumorsImpl implements Rumors {
 			if (running) {
 				try {
 					broadcastThread.interrupt();
-					broadcastThread.join();
 					receiveThread.interrupt();
+					broadcastThread.join();
 					receiveThread.join();
 				} catch (InterruptedException ie) {
 				} finally {
 					broadcastThread = null;
 					receiveThread = null;
+					running = false;
 				}
 			}
 		}
