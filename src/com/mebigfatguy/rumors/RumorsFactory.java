@@ -19,11 +19,22 @@ package com.mebigfatguy.rumors;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
+import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathFactory;
 
+import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 import com.mebigfatguy.rumors.aux.Closer;
 import com.mebigfatguy.rumors.impl.RumorsImpl;
@@ -36,7 +47,7 @@ public class RumorsFactory {
 	public static final String RUMORS_SCHEMA_NAME = "http://rumors.mebigfatguy.com/1.0/rumors";
 	public static final String RUMORS_FILE = "/rumors.xml";
 	public static final String RUMORS_SCHEMA_FILE = "/rumors.xsd";
-	private static final Rumors rumors;
+	private static final RumorsImpl rumors;
 	
 	static {
 		rumors = new RumorsImpl();
@@ -67,11 +78,52 @@ public class RumorsFactory {
 			DocumentBuilder db = dbf.newDocumentBuilder();
 			Document d = db.parse(xmlIs);
 			
+			XPathFactory xpf = XPathFactory.newInstance();
+			XPath xp = xpf.newXPath();
+			xp.setNamespaceContext(new RumorsNamespaceContext());
+			XPathExpression xpe = xp.compile("/ru:rumors/dynamic/@port");
+			
+			Attr attr = (Attr)xpe.evaluate(d, XPathConstants.NODE);
+			rumors.setDynamicPort(Integer.parseInt(attr.getValue()));
+			
+			xpe = xp.compile("/ru:rumors/static/tcp");
+			NodeList tcps = (NodeList)xpe.evaluate(d, XPathConstants.NODESET);
+			List<TcpEndpoint> endpoints = new ArrayList<TcpEndpoint>();
+			for (int i = 0; i < tcps.getLength(); ++i) {
+				Element tcp = (Element) tcps.item(i);
+				String ip = tcp.getAttribute("ip");
+				int port = Integer.parseInt(tcp.getAttribute("port"));
+				TcpEndpoint endpoint = new TcpEndpoint(ip, port);
+				endpoints.add(endpoint);
+			}
+			rumors.setStaticEndpoints(endpoints);
+			
+			xpe = xp.compile("/ru:rumors/startup");
+			Element e = (Element) xpe.evaluate(d, XPathConstants.NODE);
+			
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
 			Closer.close(xmlIs);
 			Closer.close(xsdIs);
+		}
+	}
+	
+	private static class RumorsNamespaceContext implements NamespaceContext {
+		@Override
+		public String getNamespaceURI(String prefix) {
+			return RUMORS_SCHEMA_NAME;
+		}
+
+		@Override
+		public String getPrefix(String namespaceURI) {
+			return "";
+		}
+
+		@Override
+		public Iterator<String> getPrefixes(String namespaceURI) {
+			return null;
 		}
 	}
 }

@@ -15,37 +15,27 @@
  * See the License for the specific language governing permissions and limitations 
  * under the License. 
  */
-package com.mebigfatguy.rumors.impl;
+package com.mebigfatguy.rumors;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import com.mebigfatguy.rumors.Rumors;
-import com.mebigfatguy.rumors.TcpEndpoint;
-
-public class RumorsImpl implements Rumors {
-
-	private int dynamicPort;
-	private List<TcpEndpoint> endpoints;
+public class TcpEndpoint {
+	private final String ip;
+	private final int port;
+	
+	public TcpEndpoint(String serverIP, int serverPort) {
+		ip = serverIP;
+		port = serverPort;
+	}
+	
+	public String getIp() {
+		return ip;
+	}
+	
+	public int getPort() {
+		return port;
+	}
 	
 	@Override
-	public void begin() {
-		// TODO Auto-generated method stub
-
+	public String toString() {
+		return ip + ":" + port;
 	}
-
-	@Override
-	public void end() {
-		// TODO Auto-generated method stub
-
-	}
-
-	public void setDynamicPort(int port) {
-		dynamicPort = port;
-	}
-
-	public void setStaticEndpoints(List<TcpEndpoint> tcpEndpoints) {
-		endpoints = new ArrayList<TcpEndpoint>(tcpEndpoints);
-	}
-
 }
