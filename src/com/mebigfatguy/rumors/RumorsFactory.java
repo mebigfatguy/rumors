@@ -30,7 +30,12 @@ import com.mebigfatguy.rumors.impl.RumorsImpl;
 
 public class RumorsFactory {
 
+	public static final String JAXP_SCHEMA_LANGUAGE = "http://java.sun.com/xml/jaxp/properties/schemaLanguage";
+	public static final String W3C_XML_SCHEMA = "http://www.w3.org/2001/XMLSchema"; 
+	public static final String JAXP_SCHEMA_SOURCE = "http://java.sun.com/xml/jaxp/properties/schemaSource";
+	public static final String RUMORS_SCHEMA_NAME = "http://rumors.mebigfatguy.com/1.0/rumors";
 	public static final String RUMORS_FILE = "/rumors.xml";
+	public static final String RUMORS_SCHEMA_FILE = "/rumors.xsd";
 	private static final Rumors rumors;
 	
 	static {
@@ -47,21 +52,26 @@ public class RumorsFactory {
 	
 	private static void initializeFromRumorsFile() {
 		
-		InputStream is = null;
+		InputStream xmlIs = null;
+		InputStream xsdIs = null;
 		
 		try {
-			is = new BufferedInputStream(RumorsFactory.class.getResourceAsStream(RUMORS_FILE));
+			xmlIs = new BufferedInputStream(RumorsFactory.class.getResourceAsStream(RUMORS_FILE));
+			xsdIs = new BufferedInputStream(RumorsFactory.class.getResourceAsStream(RUMORS_SCHEMA_FILE));
 			
 			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 			dbf.setNamespaceAware(true);
 			dbf.setValidating(true);
+			dbf.setAttribute(JAXP_SCHEMA_LANGUAGE, W3C_XML_SCHEMA); 
+			dbf.setAttribute(JAXP_SCHEMA_SOURCE, xsdIs); 
 			DocumentBuilder db = dbf.newDocumentBuilder();
-			Document d = db.parse(is);
+			Document d = db.parse(xmlIs);
 			
 		} catch (Exception e) {
-			
+			e.printStackTrace();
 		} finally {
-			Closer.close(is);
+			Closer.close(xmlIs);
+			Closer.close(xsdIs);
 		}
 	}
 }
