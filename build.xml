@@ -48,6 +48,16 @@
     	<copy file="${etc.dir}/rumors.xsd" tofile="${classes.dir}"/>
     </target>
 	
+	<target name="validate" depends="-init" description="validates the xml file">
+		<xmlvalidate file="${etc.dir}/rumors.xml">
+			<attribute name="http://xml.org/sax/features/validation" value="true"/>
+		  	<attribute name="http://apache.org/xml/features/validation/schema"  value="true"/>
+		  	<attribute name="http://xml.org/sax/features/namespaces" value="true"/>
+			<property name="http://apache.org/xml/properties/schema/external-noNamespaceSchemaLocation"
+			          value="${etc.dir}/rumors.xsd"/>
+		</xmlvalidate>
+	</target>
+	
     <target name="compile" depends="-init" description="compiles java files">
         <javac  srcdir="${src.dir}"
                 destdir="${classes.dir}"
@@ -60,7 +70,7 @@
         </javac>
     </target>
 	
-    <target name="build" depends="clean, -init, compile" description="compiles the code">
+    <target name="build" depends="clean, -init, validate, compile" description="compiles the code">
     </target>
 	
 	<target name="jar" depends="build" description="produces the rumors jar file">

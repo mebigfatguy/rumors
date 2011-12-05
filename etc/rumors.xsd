@@ -17,14 +17,14 @@
  * under the License. 
  */
  -->
- <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" >
+ <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
 
-	<xsd:complexType name="RumorsType" >
+	<xsd:complexType name="RumorsType">
 		<xsd:sequence>
-			<xsd:element name="dynamic" type="DynamicType" minOccurs="0" />
-			<xsd:element name="static" type="StaticType" minOccurs="0" />
-			<xsd:element name="startup" type="StartupType" minOccurs="0" />
-			<xsd:element name="ping" type="PingType" minOccurs="0" />
+			<xsd:element name="dynamic" type="DynamicType" minOccurs="0"/>
+			<xsd:element name="static" type="StaticType" minOccurs="0"/>
+			<xsd:element name="startup" type="StartUpType" minOccurs="0"/>
+			<xsd:element name="ping" type="PingType" minOccurs="0"/>
 		</xsd:sequence>
 	</xsd:complexType>
 	
@@ -33,29 +33,29 @@
 		<xsd:attribute name="port" type="xsd:nonNegativeInteger" default="13531"/>
 	</xsd:complexType>
 	
-	<xsd:complexType name="StaticType" >
+	<xsd:complexType name="StaticType">
 		<xsd:sequence>
-			<xsd:element name="tcp" type="TCPType" maxOccurs="unbounded" />
+			<xsd:element name="tcp" type="TCPType" maxOccurs="unbounded"/>
 		</xsd:sequence>
 	</xsd:complexType>
 	
-	<xsd:complexType name="TCPType" >
-		<xsd:sequence />
-		<xsd:attribute name="ip" type="xsd:string" />
-		<xsd:attribute name="port" type="xsd:nonNegativeInteger" />
+	<xsd:complexType name="TCPType">
+		<xsd:sequence/>
+		<xsd:attribute name="ip" type="xsd:string"/>
+		<xsd:attribute name="port" type="xsd:nonNegativeInteger"/>
 	</xsd:complexType>
 	
-	<xsd:complexType name="StartUpType" >
+	<xsd:complexType name="StartUpType">
 		<xsd:sequence/>
-		<xsd:attribute name="delay" type="xsd:nonNegativeInteger" default="100" />			
-		<xsd:attribute name="repeats" type="xsd:nonNegativeInteger" default="5" />			
-		<xsd:attribute name="interval" type="xsd:nonNegativeInteger" default="5000" />		
+		<xsd:attribute name="delay" type="xsd:nonNegativeInteger" default="100"/>			
+		<xsd:attribute name="repeats" type="xsd:nonNegativeInteger" default="5"/>			
+		<xsd:attribute name="interval" type="xsd:nonNegativeInteger" default="5000"/>		
 	</xsd:complexType>
 	
-	<xsd:complexType name="PingType" >
+	<xsd:complexType name="PingType">
 		<xsd:sequence/>
-		<xsd:attribute name="delay" type="xsd:nonNegativeInteger" default="60000" />			
+		<xsd:attribute name="delay" type="xsd:nonNegativeInteger" default="60000"/>			
 	</xsd:complexType>
 
-	<xsd:element name="rumors" type="RumorsType" />
+	<xsd:element name="rumors" type="RumorsType"/>
 </xsd:schema>
