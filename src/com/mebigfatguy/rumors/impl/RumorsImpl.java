@@ -60,8 +60,10 @@ public class RumorsImpl implements Rumors {
 				knownMessageSockets.add(new Endpoint(messageSocket.getLocalSocketAddress().toString(), messageSocket.getLocalPort()));
 				
 				broadcastThread = new Thread(new BroadcastRunnable());
+				broadcastThread.setName("Rumor Broadcast");
 				broadcastThread.start();
 				receiveThread = new Thread(new ReceiveRunnable());
+				receiveThread.setName("Rumor Receive");
 				receiveThread.start();
 				running = true;
 			}
