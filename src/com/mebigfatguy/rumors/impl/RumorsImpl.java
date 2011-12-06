@@ -17,11 +17,15 @@
  */
 package com.mebigfatguy.rumors.impl;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.MulticastSocket;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.mebigfatguy.rumors.Endpoint;
 import com.mebigfatguy.rumors.Rumors;
+import com.mebigfatguy.rumors.RumorsException;
 
 public class RumorsImpl implements Rumors {
 
@@ -37,12 +41,15 @@ public class RumorsImpl implements Rumors {
 	private Thread broadcastThread;
 	private Thread receiveThread;
 	private boolean running = false;
+	private MulticastSocket broadcastSocket;
 
 	
 	@Override
-	public void begin() {
+	public void begin() throws RumorsException {
 		synchronized(sync) {
 			if (!running) {
+				initializeRumorPorts();
+				
 				broadcastThread = new Thread(new BroadcastRunnable());
 				broadcastThread.start();
 				receiveThread = new Thread(new ReceiveRunnable());
@@ -57,6 +64,8 @@ public class RumorsImpl implements Rumors {
 		synchronized(sync) {
 			if (running) {
 				try {
+					terminateRumorPorts();
+					
 					broadcastThread.interrupt();
 					receiveThread.interrupt();
 					broadcastThread.join();
@@ -88,7 +97,29 @@ public class RumorsImpl implements Rumors {
 		for (String delay : delays) {
 			broadcastAnnounce[i++] = Integer.parseInt(delay);
 		}
+	}
+	
+	private void initializeRumorPorts() throws RumorsException {
+		try {
+			broadcastSocket = new MulticastSocket(broadcastEndpoint.getPort());
+			broadcastSocket.joinGroup(InetAddress.getByName(broadcastEndpoint.getIp()));
+		} catch (IOException ioe) {
+			terminateRumorPorts();
+			throw new RumorsException("Failed initializing rumor ports", ioe);
+		}
 		
+	}
+	
+	private void terminateRumorPorts() {
+		try {
+			if (broadcastSocket != null) {
+				broadcastSocket.leaveGroup(InetAddress.getByName(broadcastEndpoint.getIp()));
+				broadcastSocket.close();
+			}
+		} catch (Exception e) {
+		} finally {
+			broadcastSocket = null;
+		}
 	}
 	
 	private class BroadcastRunnable implements Runnable {

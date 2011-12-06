@@ -17,9 +17,15 @@
  */
 package com.mebigfatguy.rumors;
 
-public interface Rumors {
+public class RumorsException extends Exception {
 
-	void begin() throws RumorsException;
+	private static final long serialVersionUID = -4421215373946061954L;
+
+	public RumorsException(String message) {
+		super(message);
+	}
 	
-	void end();
+	public RumorsException(String message, Throwable cause) {
+		super(message, cause);
+	}
 }
