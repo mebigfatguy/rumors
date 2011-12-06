@@ -36,7 +36,7 @@ public class RumorsImpl implements Rumors {
 	private static final String DEFAULT_BROADCAST_IP = "228.229.230.231";
 	private static final int DEFAULT_DYNAMIC_PORT = 13531;
 	private static final int[] DEFAULT_ANNOUNCE_DELAY = { 100,5000,5000,5000,60000 };
-	private static final int MAX_BUFFERED_ENDPOINTS = 4000 / 20;
+	private static final int MAX_BUFFERED_ENDPOINTS = 4000 / 40;
 	
 	private Endpoint broadcastEndpoint = new Endpoint(DEFAULT_BROADCAST_IP, DEFAULT_DYNAMIC_PORT);
 	private List<Endpoint> staticEndpoints = new ArrayList<Endpoint>();
@@ -174,7 +174,7 @@ public class RumorsImpl implements Rumors {
 					}
 					
 					byte[] message = endPointsToBuffer();
-					DatagramPacket packet = new DatagramPacket(message, message.length);
+					DatagramPacket packet = new DatagramPacket(message, message.length, InetAddress.getByName(broadcastEndpoint.getIp()), broadcastEndpoint.getPort());
 					broadcastSocket.send(packet);	
 				} catch (Exception e) {		
 				}
@@ -191,6 +191,8 @@ public class RumorsImpl implements Rumors {
 				try {
 					DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 					broadcastSocket.receive(packet);
+					
+					System.out.println("RECV: " + packet.getLength());
 				} catch (IOException ioe) {
 					
 				}
