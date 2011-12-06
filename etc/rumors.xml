@@ -17,6 +17,9 @@
  * under the License. 
  */
  -->
+ <!-- 
+ This is merely a sample rumors file, it is not part of the distribution.
+  -->
  <ru:rumors xmlns:ru="http://rumors.mebigfatguy.com/1.0/rumors" 
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
             xsi:schemaLocation="http://rumors.mebigfatguy.com/1.0/rumors http://rumors.mebigfatguy.com/1.0/rumors.xsd">
