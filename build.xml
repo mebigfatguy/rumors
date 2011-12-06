@@ -34,21 +34,30 @@
 	<property name="rumors.version" value="0.0.1"/>
 	
 	<property name="junit.version" value="4.10" />
+    <property name="slf4j-api.version" value="1.6.1"/>
 
 	<property name="junit-url" value="http://repo1.maven.org/maven2/junit/junit/${junit.version}/junit-${junit.version}.jar" />
+    <property name="slf4j-api-url" value="http://repo1.maven.org/maven2/org/slf4j/slf4j-api/${slf4j-api.version}/slf4j-api-${slf4j-api.version}.jar"/>
 
 	<target name="junit-check">
 		<available file="${basedir}/lib/junit-${junit.version}.jar" property="junit-exists" />
 	</target>
+    <target name="slf4j-api-check">
+        <available file="${basedir}/lib/slf4j-api-${slf4j-api.version}.jar" property="slf4j-api-exists"/>
+    </target>
 
 	<target name="install-junit" depends="junit-check" unless="junit-exists" description="installs junit.jar into lib">
 		<get src="${junit-url}" dest="${lib.dir}/junit-${junit.version}.jar" verbose="true" ignoreerrors="true" />
 	</target>
+    <target name="install-slf4j-api" depends="slf4j-api-check" unless="slf4j-api-exists" description="installs slf4j-api.jar into lib">
+        <get src="${slf4j-api-url}" dest="${basedir}/lib/slf4j-api-${slf4j-api.version}.jar" verbose="true" ignoreerrors="true"/>
+    </target>
 
-	<target name="pull" depends="install-junit" description="pull 3rdparty jars to the lib directory" />
+	<target name="pull" depends="install-junit,install-slf4j-api" description="pull 3rdparty jars to the lib directory" />
 	
 	<path id="rumors.classpath">
 		<pathelement location="${lib.dir}/junit-${junit.version}.jar" />
+		<pathelement location="${lib.dir}/slf4j-api-${slf4j-api.version}.jar" />
 	</path>
 	
     <target name="clean" description="removes all generated collateral">
