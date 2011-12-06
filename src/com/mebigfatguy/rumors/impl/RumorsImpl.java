@@ -17,9 +17,13 @@
  */
 package com.mebigfatguy.rumors.impl;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,16 +36,20 @@ public class RumorsImpl implements Rumors {
 	private static final String DEFAULT_BROADCAST_IP = "228.229.230.231";
 	private static final int DEFAULT_DYNAMIC_PORT = 13531;
 	private static final int[] DEFAULT_ANNOUNCE_DELAY = { 100,5000,5000,5000,60000 };
+	private static final int MAX_BUFFERED_ENDPOINTS = 4000 / 20;
 	
 	private Endpoint broadcastEndpoint = new Endpoint(DEFAULT_BROADCAST_IP, DEFAULT_DYNAMIC_PORT);
-	private List<Endpoint> endpoints = new ArrayList<Endpoint>();
+	private List<Endpoint> staticEndpoints = new ArrayList<Endpoint>();
 	private int[] broadcastAnnounce = DEFAULT_ANNOUNCE_DELAY;
 	
 	private final Object sync = new Object();
 	private Thread broadcastThread;
 	private Thread receiveThread;
 	private boolean running = false;
+	private ServerSocket messageSocket;
 	private MulticastSocket broadcastSocket;
+	
+	private final List<Endpoint> knownMessageSockets = new ArrayList<Endpoint>();
 
 	
 	@Override
@@ -49,6 +57,7 @@ public class RumorsImpl implements Rumors {
 		synchronized(sync) {
 			if (!running) {
 				initializeRumorPorts();
+				knownMessageSockets.add(new Endpoint(messageSocket.getLocalSocketAddress().toString(), messageSocket.getLocalPort()));
 				
 				broadcastThread = new Thread(new BroadcastRunnable());
 				broadcastThread.start();
@@ -85,7 +94,7 @@ public class RumorsImpl implements Rumors {
 	}
 
 	public void setPoint2PointEndpoints(List<Endpoint> p2pEndpoints) {
-		endpoints = new ArrayList<Endpoint>(p2pEndpoints);
+		staticEndpoints = new ArrayList<Endpoint>(p2pEndpoints);
 	}
 	
 
@@ -101,6 +110,9 @@ public class RumorsImpl implements Rumors {
 	
 	private void initializeRumorPorts() throws RumorsException {
 		try {
+			messageSocket = new ServerSocket();
+			messageSocket.bind(null);
+			
 			broadcastSocket = new MulticastSocket(broadcastEndpoint.getPort());
 			broadcastSocket.joinGroup(InetAddress.getByName(broadcastEndpoint.getIp()));
 		} catch (IOException ioe) {
@@ -112,21 +124,58 @@ public class RumorsImpl implements Rumors {
 	
 	private void terminateRumorPorts() {
 		try {
+			messageSocket.close();
+
 			if (broadcastSocket != null) {
 				broadcastSocket.leaveGroup(InetAddress.getByName(broadcastEndpoint.getIp()));
 				broadcastSocket.close();
 			}
 		} catch (Exception e) {
 		} finally {
+			messageSocket = null;
 			broadcastSocket = null;
+		}
+	}
+	
+	private byte[] endPointsToBuffer() throws RumorsException {
+		try {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			DataOutputStream dos = new DataOutputStream(baos);
+			
+			synchronized(knownMessageSockets) {
+				for (int i = 0; (i < knownMessageSockets.size()) && (i < MAX_BUFFERED_ENDPOINTS); i++) {
+					Endpoint ep = knownMessageSockets.get(i);
+					dos.writeUTF(ep.getIp());
+					dos.writeInt(ep.getPort());
+				}
+			}
+			dos.writeUTF("");
+			dos.flush();
+			
+			
+			return baos.toByteArray();
+			
+		} catch (IOException ioe) {
+			throw new RumorsException("Failed converting known endpoints to buffer", ioe);
 		}
 	}
 	
 	private class BroadcastRunnable implements Runnable {
 		@Override
 		public void run() {
+			int delayIndex = 0;
 			while (!Thread.interrupted()) {
-				
+				try {
+					Thread.sleep(broadcastAnnounce[delayIndex++]);
+					if (delayIndex >= broadcastAnnounce.length) {
+						--delayIndex;
+					}
+					
+					byte[] message = endPointsToBuffer();
+					DatagramPacket packet = new DatagramPacket(message, message.length);
+					broadcastSocket.send(packet);	
+				} catch (Exception e) {		
+				}
 			}
 		}
 	}
@@ -134,8 +183,15 @@ public class RumorsImpl implements Rumors {
 	private class ReceiveRunnable implements Runnable {
 		@Override
 		public void run() {
+			byte[] buffer = new byte[4196];
+			
 			while (!Thread.interrupted()) {
-				
+				try {
+					DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+					broadcastSocket.receive(packet);
+				} catch (IOException ioe) {
+					
+				}
 			}
 		}
 	}
