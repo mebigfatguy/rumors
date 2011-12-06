@@ -31,6 +31,8 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -47,6 +49,9 @@ public class RumorsFactory {
 	public static final String RUMORS_SCHEMA_NAME = "http://rumors.mebigfatguy.com/1.0/rumors";
 	public static final String RUMORS_FILE = "/rumors.xml";
 	public static final String RUMORS_SCHEMA_FILE = "/rumors.xsd";
+	
+	private static Logger LOGGER = LoggerFactory.getLogger(RumorsFactory.class);
+
 	
 	private static final RumorsImpl rumors;
 	
@@ -104,7 +109,7 @@ public class RumorsFactory {
 			
 			rumors.setBroadcastAnnounceDelay(attr.getValue());				
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error("Failed initializing rumors from file: " + RUMORS_FILE, e);
 		} finally {
 			Closer.close(xmlIs);
 			Closer.close(xsdIs);
