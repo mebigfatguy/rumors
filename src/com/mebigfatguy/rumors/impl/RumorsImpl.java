@@ -20,16 +20,18 @@ package com.mebigfatguy.rumors.impl;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.mebigfatguy.rumors.Endpoint;
 import com.mebigfatguy.rumors.Rumors;
-import com.mebigfatguy.rumors.TcpEndpoint;
 
 public class RumorsImpl implements Rumors {
 
+	private static final String DEFAULT_BROADCAST_IP = "228.229.230.231";
 	private static final int DEFAULT_DYNAMIC_PORT = 13531;
+	private static final int[] DEFAULT_ANNOUNCE_DELAY = { 100,5000,5000,5000,60000 };
 	
-	private int dynamicPort = DEFAULT_DYNAMIC_PORT;
-	private List<TcpEndpoint> endpoints = new ArrayList<TcpEndpoint>();
-	private int[] broadcastDelays = new int[] { 100,5000,5000,5000,60000 };
+	private Endpoint broadcastEndpoint = new Endpoint(DEFAULT_BROADCAST_IP, DEFAULT_DYNAMIC_PORT);
+	private List<Endpoint> endpoints = new ArrayList<Endpoint>();
+	private int[] broadcastAnnounce = DEFAULT_ANNOUNCE_DELAY;
 	
 	private final Object sync = new Object();
 	private Thread broadcastThread;
@@ -69,22 +71,22 @@ public class RumorsImpl implements Rumors {
 		}
 	}
 
-	public void setDynamicPort(int port) {
-		dynamicPort = port;
+	public void setBroadcastEndpoint(Endpoint bcEndpoint) {
+		broadcastEndpoint = bcEndpoint;
 	}
 
-	public void setStaticEndpoints(List<TcpEndpoint> tcpEndpoints) {
-		endpoints = new ArrayList<TcpEndpoint>(tcpEndpoints);
+	public void setPoint2PointEndpoints(List<Endpoint> p2pEndpoints) {
+		endpoints = new ArrayList<Endpoint>(p2pEndpoints);
 	}
 	
 
-	public void setBroadcastDelay(String value) {
+	public void setBroadcastAnnounceDelay(String value) {
 		String[] delays = value.split(",");
-		broadcastDelays = new int[delays.length];
+		broadcastAnnounce = new int[delays.length];
 		
 		int i = 0;
 		for (String delay : delays) {
-			broadcastDelays[i++] = Integer.parseInt(delay);
+			broadcastAnnounce[i++] = Integer.parseInt(delay);
 		}
 		
 	}
@@ -106,6 +108,4 @@ public class RumorsImpl implements Rumors {
 			}
 		}
 	}
-
-
 }

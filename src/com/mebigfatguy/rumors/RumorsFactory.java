@@ -47,6 +47,7 @@ public class RumorsFactory {
 	public static final String RUMORS_SCHEMA_NAME = "http://rumors.mebigfatguy.com/1.0/rumors";
 	public static final String RUMORS_FILE = "/rumors.xml";
 	public static final String RUMORS_SCHEMA_FILE = "/rumors.xsd";
+	
 	private static final RumorsImpl rumors;
 	
 	static {
@@ -81,29 +82,27 @@ public class RumorsFactory {
 			XPathFactory xpf = XPathFactory.newInstance();
 			XPath xp = xpf.newXPath();
 			xp.setNamespaceContext(new RumorsNamespaceContext());
-			XPathExpression xpe = xp.compile("/ru:rumors/dynamic/@port");
+			XPathExpression xpe = xp.compile("/ru:rumors/broadcast");
 			
-			Attr attr = (Attr)xpe.evaluate(d, XPathConstants.NODE);
-			rumors.setDynamicPort(Integer.parseInt(attr.getValue()));
+			Element e = (Element)xpe.evaluate(d, XPathConstants.NODE);
+			rumors.setBroadcastEndpoint(new Endpoint(e.getAttribute("ip"), Integer.parseInt(e.getAttribute("port"))));
 			
-			xpe = xp.compile("/ru:rumors/static/tcp");
+			xpe = xp.compile("/ru:rumors/point2point/tcp");
 			NodeList tcps = (NodeList)xpe.evaluate(d, XPathConstants.NODESET);
-			List<TcpEndpoint> endpoints = new ArrayList<TcpEndpoint>();
+			List<Endpoint> endpoints = new ArrayList<Endpoint>();
 			for (int i = 0; i < tcps.getLength(); ++i) {
 				Element tcp = (Element) tcps.item(i);
 				String ip = tcp.getAttribute("ip");
 				int port = Integer.parseInt(tcp.getAttribute("port"));
-				TcpEndpoint endpoint = new TcpEndpoint(ip, port);
+				Endpoint endpoint = new Endpoint(ip, port);
 				endpoints.add(endpoint);
 			}
-			rumors.setStaticEndpoints(endpoints);
+			rumors.setPoint2PointEndpoints(endpoints);
 			
-			xpe = xp.compile("/ru:rumors/broadcast/@delay");
-			attr = (Attr) xpe.evaluate(d, XPathConstants.NODE);
+			xpe = xp.compile("/ru:rumors/announce/@delay");
+			Attr attr = (Attr) xpe.evaluate(d, XPathConstants.NODE);
 			
-			rumors.setBroadcastDelay(attr.getValue());
-			
-			
+			rumors.setBroadcastAnnounceDelay(attr.getValue());				
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {

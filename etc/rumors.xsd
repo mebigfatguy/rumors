@@ -25,18 +25,19 @@
 
 	<xsd:complexType name="RumorsType">
 		<xsd:sequence>
-			<xsd:element name="dynamic" type="ru:DynamicType" minOccurs="0"/>
-			<xsd:element name="static" type="ru:StaticType" minOccurs="0"/>
 			<xsd:element name="broadcast" type="ru:BroadcastType" minOccurs="0"/>
+			<xsd:element name="point2point" type="ru:Point2PointType" minOccurs="0"/>
+			<xsd:element name="announce" type="ru:AnnounceType" minOccurs="0"/>
 		</xsd:sequence>
 	</xsd:complexType>
 	
-	<xsd:complexType name="DynamicType">
+	<xsd:complexType name="BroadcastType">
 		<xsd:sequence/>
+		<xsd:attribute name="ip" type="xsd:string" default="228.229.230.231"/>
 		<xsd:attribute name="port" type="xsd:nonNegativeInteger" default="13531"/>
 	</xsd:complexType>
 	
-	<xsd:complexType name="StaticType">
+	<xsd:complexType name="Point2PointType">
 		<xsd:sequence>
 			<xsd:element name="tcp" type="ru:TCPType" maxOccurs="unbounded"/>
 		</xsd:sequence>
@@ -48,7 +49,7 @@
 		<xsd:attribute name="port" type="xsd:nonNegativeInteger"/>
 	</xsd:complexType>
 	
-	<xsd:complexType name="BroadcastType">
+	<xsd:complexType name="AnnounceType">
 		<xsd:sequence/>
 		<xsd:attribute name="delay" type="ru:DelayType"/>
 	</xsd:complexType>

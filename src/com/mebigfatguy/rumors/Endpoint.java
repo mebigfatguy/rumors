@@ -17,11 +17,11 @@
  */
 package com.mebigfatguy.rumors;
 
-public class TcpEndpoint {
+public class Endpoint {
 	private final String ip;
 	private final int port;
 	
-	public TcpEndpoint(String serverIP, int serverPort) {
+	public Endpoint(String serverIP, int serverPort) {
 		ip = serverIP;
 		port = serverPort;
 	}
