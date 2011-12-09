@@ -219,7 +219,7 @@ public class RumorsImpl implements Rumors {
 	private class ReceiveRunnable implements Runnable {
 		@Override
 		public void run() {
-			byte[] buffer = new byte[4196];
+			byte[] buffer = new byte[4096];
 			
 			while (!Thread.interrupted()) {
 				try {
