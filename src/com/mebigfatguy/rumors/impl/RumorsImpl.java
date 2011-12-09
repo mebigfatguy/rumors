@@ -17,7 +17,9 @@
  */
 package com.mebigfatguy.rumors.impl;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -26,6 +28,11 @@ import java.net.MulticastSocket;
 import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mebigfatguy.rumors.Endpoint;
 import com.mebigfatguy.rumors.Rumors;
@@ -38,6 +45,8 @@ public class RumorsImpl implements Rumors {
 	private static final int[] DEFAULT_ANNOUNCE_DELAY = { 100,5000,5000,5000,60000 };
 	private static final int MAX_BUFFERED_ENDPOINTS = 4000 / 40;
 	
+	private static Logger LOGGER = LoggerFactory.getLogger(RumorsImpl.class);
+	
 	private Endpoint broadcastEndpoint = new Endpoint(DEFAULT_BROADCAST_IP, DEFAULT_DYNAMIC_PORT);
 	private List<Endpoint> staticEndpoints = new ArrayList<Endpoint>();
 	private int[] broadcastAnnounce = DEFAULT_ANNOUNCE_DELAY;
@@ -49,15 +58,14 @@ public class RumorsImpl implements Rumors {
 	private ServerSocket messageSocket;
 	private MulticastSocket broadcastSocket;
 	
-	private final List<Endpoint> knownMessageSockets = new ArrayList<Endpoint>();
-
+	private final Map<Endpoint, Boolean> knownMessageSockets = new ConcurrentHashMap<Endpoint, Boolean>();
 	
 	@Override
 	public void begin() throws RumorsException {
 		synchronized(sync) {
 			if (!running) {
 				initializeRumorPorts();
-				knownMessageSockets.add(new Endpoint(messageSocket.getLocalSocketAddress().toString(), messageSocket.getLocalPort()));
+				knownMessageSockets.put(new Endpoint(messageSocket.getInetAddress().getHostAddress(), messageSocket.getLocalPort()), Boolean.TRUE);
 				
 				broadcastThread = new Thread(new BroadcastRunnable());
 				broadcastThread.setName("Rumor Broadcast");
@@ -144,13 +152,17 @@ public class RumorsImpl implements Rumors {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			DataOutputStream dos = new DataOutputStream(baos);
 			
-			synchronized(knownMessageSockets) {
-				for (int i = 0; (i < knownMessageSockets.size()) && (i < MAX_BUFFERED_ENDPOINTS); i++) {
-					Endpoint ep = knownMessageSockets.get(i);
-					dos.writeUTF(ep.getIp());
-					dos.writeInt(ep.getPort());
+			int written = 0;
+				
+			for (Endpoint ep : knownMessageSockets.keySet()) {
+				if (written >= MAX_BUFFERED_ENDPOINTS) {
+					break;
 				}
+
+				dos.writeUTF(ep.getIp());
+				dos.writeInt(ep.getPort());
 			}
+			
 			dos.writeUTF("");
 			dos.flush();
 			
@@ -159,6 +171,27 @@ public class RumorsImpl implements Rumors {
 			
 		} catch (IOException ioe) {
 			throw new RumorsException("Failed converting known endpoints to buffer", ioe);
+		}
+	}
+	
+	private void bufferToEndPoints(byte[] buffer, int length) throws RumorsException {
+		try {
+			ByteArrayInputStream bais = new ByteArrayInputStream(buffer, 0, length);
+			DataInputStream dis = new DataInputStream(bais);
+			
+			String ip = dis.readUTF();
+			while (ip.length() > 0) {
+				int port = dis.readInt();
+				
+				Endpoint ep = new Endpoint(ip, port);
+				if (!knownMessageSockets.containsKey(ep)) {
+					knownMessageSockets.put(ep, false);
+				}
+				ip = dis.readUTF();
+			}
+			
+		} catch (IOException ioe) {
+			throw new RumorsException("Failed converting incoming buffer to endpoints", ioe);
 		}
 	}
 	
@@ -176,7 +209,8 @@ public class RumorsImpl implements Rumors {
 					byte[] message = endPointsToBuffer();
 					DatagramPacket packet = new DatagramPacket(message, message.length, InetAddress.getByName(broadcastEndpoint.getIp()), broadcastEndpoint.getPort());
 					broadcastSocket.send(packet);	
-				} catch (Exception e) {		
+				} catch (Exception e) {	
+					LOGGER.error("Failed performing broadcast", e);
 				}
 			}
 		}
@@ -192,9 +226,9 @@ public class RumorsImpl implements Rumors {
 					DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 					broadcastSocket.receive(packet);
 					
-					System.out.println("RECV: " + packet.getLength());
-				} catch (IOException ioe) {
-					
+					bufferToEndPoints(packet.getData(), packet.getLength());
+				} catch (Exception e) {
+					LOGGER.error("Failed receiving broadcast", e);
 				}
 			}
 		}

@@ -35,6 +35,21 @@ public class Endpoint {
 	}
 	
 	@Override
+	public int hashCode() {
+		return ip.hashCode() ^ port;
+	}
+	
+	@Override
+	public boolean equals(Object o) {
+		if (!(o instanceof Endpoint)) {
+			return false;
+		}
+		
+		Endpoint that = (Endpoint) o;
+		return ((port == that.port) && ip.equals(that.ip));
+	}
+	
+	@Override
 	public String toString() {
 		return ip + ":" + port;
 	}
