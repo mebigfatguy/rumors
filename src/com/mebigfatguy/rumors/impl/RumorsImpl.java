@@ -17,15 +17,18 @@
  */
 package com.mebigfatguy.rumors.impl;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import com.mebigfatguy.rumors.Endpoint;
 import com.mebigfatguy.rumors.Rumors;
 import com.mebigfatguy.rumors.RumorsException;
+import com.mebigfatguy.rumors.aux.Closer;
 
 public class RumorsImpl implements Rumors {
 
@@ -54,6 +58,7 @@ public class RumorsImpl implements Rumors {
 	private final Object sync = new Object();
 	private Thread broadcastThread;
 	private Thread receiveThread;
+	private Thread staticThread;
 	private boolean running = false;
 	private ServerSocket messageSocket;
 	private MulticastSocket broadcastSocket;
@@ -73,6 +78,12 @@ public class RumorsImpl implements Rumors {
 				receiveThread = new Thread(new ReceiveRunnable());
 				receiveThread.setName("Rumor Receive");
 				receiveThread.start();
+				
+				if (!staticEndpoints.isEmpty()) {
+					staticThread = new Thread(new StaticRunnable());
+					staticThread.setName("Static Discovery");
+					staticThread.start();
+				}
 				running = true;
 			}
 		}
@@ -87,12 +98,19 @@ public class RumorsImpl implements Rumors {
 					
 					broadcastThread.interrupt();
 					receiveThread.interrupt();
+					if (staticThread != null) {
+						staticThread.interrupt();
+						staticThread.join();
+					}
 					broadcastThread.join();
 					receiveThread.join();
+					
+					
 				} catch (InterruptedException ie) {
 				} finally {
 					broadcastThread = null;
 					receiveThread = null;
+					staticThread = null;
 					running = false;
 				}
 			}
@@ -174,10 +192,9 @@ public class RumorsImpl implements Rumors {
 		}
 	}
 	
-	private void bufferToEndPoints(byte[] buffer, int length) throws RumorsException {
+	private void bufferToEndPoints(InputStream is) throws RumorsException {
 		try {
-			ByteArrayInputStream bais = new ByteArrayInputStream(buffer, 0, length);
-			DataInputStream dis = new DataInputStream(bais);
+			DataInputStream dis = new DataInputStream(new BufferedInputStream(is));
 			
 			String ip = dis.readUTF();
 			while (ip.length() > 0) {
@@ -226,9 +243,38 @@ public class RumorsImpl implements Rumors {
 					DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 					broadcastSocket.receive(packet);
 					
-					bufferToEndPoints(packet.getData(), packet.getLength());
+					bufferToEndPoints(new ByteArrayInputStream(packet.getData(), 0, packet.getLength()));
 				} catch (Exception e) {
 					LOGGER.error("Failed receiving broadcast", e);
+				}
+			}
+		}
+	}
+	
+	private class StaticRunnable implements Runnable {
+		@Override
+		public void run() {
+			int delayIndex = 0;
+			while (!Thread.interrupted()) {
+				try {
+					Thread.sleep(broadcastAnnounce[delayIndex++] + 100);
+					if (delayIndex >= broadcastAnnounce.length) {
+						--delayIndex;
+					}
+					
+					for (Endpoint ep : staticEndpoints) {
+						Socket s = null;
+						DataInputStream dis = null;
+						try {
+							s = new Socket(ep.getIp(), ep.getPort());
+							bufferToEndPoints(s.getInputStream());
+						} catch (IOException ioe) {
+							Closer.close(dis);
+							s.close();
+						}
+					}
+				} catch (Exception e) {	
+					LOGGER.error("Failed performing broadcast", e);
 				}
 			}
 		}
