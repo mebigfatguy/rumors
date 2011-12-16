@@ -92,6 +92,12 @@ public class RumorsFactory {
 			Element e = (Element)xpe.evaluate(d, XPathConstants.NODE);
 			rumors.setBroadcastEndpoint(new Endpoint(e.getAttribute("ip"), Integer.parseInt(e.getAttribute("port"))));
 			
+			xpe = xp.compile("/ru:rumors/static/@port");
+			Attr staticPort = (Attr)xpe.evaluate(d, XPathConstants.NODE);
+			if (staticPort != null) {
+				rumors.setStaticPort(Integer.parseInt(staticPort.getValue()));
+			}
+			
 			xpe = xp.compile("/ru:rumors/point2point/tcp");
 			NodeList tcps = (NodeList)xpe.evaluate(d, XPathConstants.NODESET);
 			List<Endpoint> endpoints = new ArrayList<Endpoint>();

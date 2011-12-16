@@ -24,9 +24,10 @@
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
             xsi:schemaLocation="http://rumors.mebigfatguy.com/1.0/rumors http://rumors.mebigfatguy.com/1.0/rumors.xsd">
 	<broadcast ip="228.229.230.231" port="13531"/>
+	<static port="13533"/>
 	<point2point>
-		<tcp ip="10.140.179.109" port="23532"/>
-		<tcp ip="10.140.179.106" port="9999"/>
+		<tcp ip="192.168.1.100" port="13533"/>
+		<tcp ip="192.168.1.101" port="13533"/>
 	</point2point>
 	<announce delay="100,5000,5000,5000,60000"/>
 </ru:rumors>

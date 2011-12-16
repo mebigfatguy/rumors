@@ -19,6 +19,9 @@ package com.mebigfatguy.rumors.aux;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.MulticastSocket;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 public class Closer {
 
@@ -31,6 +34,33 @@ public class Closer {
 				c.close();
 			}
 		} catch (IOException ioe) {
+		}
+	}
+	
+	public static void close(MulticastSocket s) {
+		try {
+			if (s != null) {
+				s.close();
+			}
+		} catch (Exception e) {
+		}
+	}
+	
+	public static void close(ServerSocket s) {
+		try {
+			if (s != null) {
+				s.close();
+			}
+		} catch (Exception e) {
+		}
+	}
+	
+	public static void close(Socket s) {
+		try {
+			if (s != null) {
+				s.close();
+			}
+		} catch (Exception e) {
 		}
 	}
 }

@@ -24,6 +24,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
@@ -52,16 +53,19 @@ public class RumorsImpl implements Rumors {
 	private static Logger LOGGER = LoggerFactory.getLogger(RumorsImpl.class);
 	
 	private Endpoint broadcastEndpoint = new Endpoint(DEFAULT_BROADCAST_IP, DEFAULT_DYNAMIC_PORT);
+	private int staticPort = 0;
 	private List<Endpoint> staticEndpoints = new ArrayList<Endpoint>();
 	private int[] broadcastAnnounce = DEFAULT_ANNOUNCE_DELAY;
 	
 	private final Object sync = new Object();
-	private Thread broadcastThread;
-	private Thread receiveThread;
-	private Thread staticThread;
+	private Thread dynamicBroadcastThread;
+	private Thread dynamicReceiveThread;
+	private Thread staticBroadcastThread;
+	private Thread staticReceiveThread;
 	private boolean running = false;
-	private ServerSocket messageSocket;
+	private ServerSocket staticDiscoverySocket;
 	private MulticastSocket broadcastSocket;
+	private ServerSocket messageSocket;
 	
 	private final Map<Endpoint, Boolean> knownMessageSockets = new ConcurrentHashMap<Endpoint, Boolean>();
 	
@@ -72,17 +76,23 @@ public class RumorsImpl implements Rumors {
 				initializeRumorPorts();
 				knownMessageSockets.put(new Endpoint(messageSocket.getInetAddress().getHostAddress(), messageSocket.getLocalPort()), Boolean.TRUE);
 				
-				broadcastThread = new Thread(new BroadcastRunnable());
-				broadcastThread.setName("Rumor Broadcast");
-				broadcastThread.start();
-				receiveThread = new Thread(new ReceiveRunnable());
-				receiveThread.setName("Rumor Receive");
-				receiveThread.start();
+				dynamicBroadcastThread = new Thread(new DynamicBroadcastRunnable());
+				dynamicBroadcastThread.setName("Rumor Broadcast");
+				dynamicBroadcastThread.start();
+				dynamicReceiveThread = new Thread(new DynamicReceiveRunnable());
+				dynamicReceiveThread.setName("Rumor Receive");
+				dynamicReceiveThread.start();
+				
+				if (staticPort > 0) {
+					staticReceiveThread = new Thread(new StaticReceiveRunnable());
+					staticReceiveThread.setName("Static Receive");
+					staticReceiveThread.start();
+				}
 				
 				if (!staticEndpoints.isEmpty()) {
-					staticThread = new Thread(new StaticRunnable());
-					staticThread.setName("Static Discovery");
-					staticThread.start();
+					staticBroadcastThread = new Thread(new StaticBroadcastRunnable());
+					staticBroadcastThread.setName("Static Discovery");
+					staticBroadcastThread.start();
 				}
 				running = true;
 			}
@@ -96,21 +106,26 @@ public class RumorsImpl implements Rumors {
 				try {
 					terminateRumorPorts();
 					
-					broadcastThread.interrupt();
-					receiveThread.interrupt();
-					if (staticThread != null) {
-						staticThread.interrupt();
-						staticThread.join();
+					dynamicBroadcastThread.interrupt();
+					dynamicReceiveThread.interrupt();
+					if (staticBroadcastThread != null) {
+						staticBroadcastThread.interrupt();
+						staticBroadcastThread.join();
 					}
-					broadcastThread.join();
-					receiveThread.join();
+					if (staticReceiveThread != null) {
+						staticReceiveThread.interrupt();
+						staticReceiveThread.join();
+					}
+					dynamicBroadcastThread.join();
+					dynamicReceiveThread.join();
 					
 					
 				} catch (InterruptedException ie) {
 				} finally {
-					broadcastThread = null;
-					receiveThread = null;
-					staticThread = null;
+					dynamicBroadcastThread = null;
+					dynamicReceiveThread = null;
+					staticBroadcastThread = null;
+					staticReceiveThread = null;
 					running = false;
 				}
 			}
@@ -119,6 +134,10 @@ public class RumorsImpl implements Rumors {
 
 	public void setBroadcastEndpoint(Endpoint bcEndpoint) {
 		broadcastEndpoint = bcEndpoint;
+	}
+	
+	public void setStaticPort(int port) {
+		staticPort = port;
 	}
 
 	public void setPoint2PointEndpoints(List<Endpoint> p2pEndpoints) {
@@ -143,6 +162,10 @@ public class RumorsImpl implements Rumors {
 			
 			broadcastSocket = new MulticastSocket(broadcastEndpoint.getPort());
 			broadcastSocket.joinGroup(InetAddress.getByName(broadcastEndpoint.getIp()));
+			
+			if (staticPort > 0) {
+				staticDiscoverySocket = new ServerSocket(staticPort);
+			}
 		} catch (IOException ioe) {
 			terminateRumorPorts();
 			throw new RumorsException("Failed initializing rumor ports", ioe);
@@ -152,16 +175,21 @@ public class RumorsImpl implements Rumors {
 	
 	private void terminateRumorPorts() {
 		try {
-			messageSocket.close();
+			Closer.close(messageSocket);
 
 			if (broadcastSocket != null) {
 				broadcastSocket.leaveGroup(InetAddress.getByName(broadcastEndpoint.getIp()));
-				broadcastSocket.close();
+				Closer.close(broadcastSocket);
+			}
+			
+			if (staticDiscoverySocket != null) {
+				Closer.close(staticDiscoverySocket);
 			}
 		} catch (Exception e) {
 		} finally {
 			messageSocket = null;
 			broadcastSocket = null;
+			staticDiscoverySocket = null;
 		}
 	}
 	
@@ -212,7 +240,7 @@ public class RumorsImpl implements Rumors {
 		}
 	}
 	
-	private class BroadcastRunnable implements Runnable {
+	private class DynamicBroadcastRunnable implements Runnable {
 		@Override
 		public void run() {
 			int delayIndex = 0;
@@ -233,7 +261,7 @@ public class RumorsImpl implements Rumors {
 		}
 	}
 	
-	private class ReceiveRunnable implements Runnable {
+	private class DynamicReceiveRunnable implements Runnable {
 		@Override
 		public void run() {
 			byte[] buffer = new byte[4096];
@@ -251,7 +279,7 @@ public class RumorsImpl implements Rumors {
 		}
 	}
 	
-	private class StaticRunnable implements Runnable {
+	private class StaticBroadcastRunnable implements Runnable {
 		@Override
 		public void run() {
 			int delayIndex = 0;
@@ -265,17 +293,52 @@ public class RumorsImpl implements Rumors {
 					for (Endpoint ep : staticEndpoints) {
 						Socket s = null;
 						DataInputStream dis = null;
+						OutputStream os = null;
 						try {
 							s = new Socket(ep.getIp(), ep.getPort());
+							byte[] buffer = endPointsToBuffer();
+							os = s.getOutputStream();
+							os.write(buffer);
+							os.flush();
 							bufferToEndPoints(s.getInputStream());
 						} catch (IOException ioe) {
+							Closer.close(os);
 							Closer.close(dis);
-							s.close();
+							Closer.close(s);
 						}
 					}
 				} catch (Exception e) {	
 					LOGGER.error("Failed performing broadcast", e);
 				}
+			}
+		}
+	}
+	
+	private class StaticReceiveRunnable implements Runnable {
+		
+		@Override
+		public void run() {
+			while (!Thread.interrupted()) {
+				
+				Socket s = null;
+				BufferedInputStream bis = null;
+				OutputStream os = null;
+				
+				try {
+					s = staticDiscoverySocket.accept();
+					bis = new BufferedInputStream(s.getInputStream());
+					os = s.getOutputStream();
+					bufferToEndPoints(bis);
+					byte[] buffer = endPointsToBuffer();
+					os.write(buffer);
+					os.flush();
+				} catch (Exception e) {
+					LOGGER.error("Failed receiving static discovery request", e);
+				} finally {
+					Closer.close(bis);
+					Closer.close(os);
+				}
+				
 			}
 		}
 	}

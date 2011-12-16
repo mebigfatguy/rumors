@@ -26,6 +26,7 @@
 	<xsd:complexType name="RumorsType">
 		<xsd:sequence>
 			<xsd:element name="broadcast" type="ru:BroadcastType" minOccurs="0"/>
+			<xsd:element name="static" type="ru:StaticType" minOccurs="0"/>
 			<xsd:element name="point2point" type="ru:Point2PointType" minOccurs="0"/>
 			<xsd:element name="announce" type="ru:AnnounceType" minOccurs="0"/>
 		</xsd:sequence>
@@ -35,6 +36,11 @@
 		<xsd:sequence/>
 		<xsd:attribute name="ip" type="xsd:string" default="228.229.230.231"/>
 		<xsd:attribute name="port" type="xsd:nonNegativeInteger" default="13531"/>
+	</xsd:complexType>
+	
+	<xsd:complexType name="StaticType">
+		<xsd:sequence/>
+		<xsd:attribute name="port" type="xsd:nonNegativeInteger" default="13533"/>
 	</xsd:complexType>
 	
 	<xsd:complexType name="Point2PointType">
