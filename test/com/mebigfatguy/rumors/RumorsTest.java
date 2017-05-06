@@ -1,46 +1,25 @@
 package com.mebigfatguy.rumors;
 
+import java.io.IOException;
+
 import org.junit.Test;
 
 public class RumorsTest {
 
-    private static final int NUM_THREADS = 5;
+    private static final int NUM_PROCESSES = 5;
 
     @Test
-    public void test() throws InterruptedException {
+    public void test() throws IOException, InterruptedException {
 
-        Thread[] threads = new Thread[NUM_THREADS];
-        for (int i = 0; i < NUM_THREADS; i++) {
-            threads[i] = new Thread(new RumorRunnableTest());
-            threads[i].start();
+        Process[] processes = new Process[NUM_PROCESSES];
+
+        Runtime rt = Runtime.getRuntime();
+        for (int i = 0; i < NUM_PROCESSES; i++) {
+            processes[i] = rt.exec("java com.mebigfatguy.rumors.RumorClient");
         }
 
-        Thread.sleep(10000);
-
-        for (Thread t : threads) {
-            try {
-                synchronized (t) {
-                    t.interrupt();
-                    t.join();
-                }
-            } catch (InterruptedException ie) {
-            }
-        }
-
-    }
-
-    static class RumorRunnableTest implements Runnable {
-        @Override
-        public void run() {
-            Rumors r = RumorsFactory.getRumors();
-            try {
-                r.begin();
-            } catch (RumorsException e) {
-
-            } finally {
-                r.end();
-            }
-
+        for (int i = 0; i < NUM_PROCESSES; i++) {
+            processes[i].waitFor();
         }
     }
 }
