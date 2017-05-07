@@ -38,7 +38,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-import com.mebigfatguy.rumors.aux.Closer;
 import com.mebigfatguy.rumors.impl.RumorsImpl;
 
 public class RumorsFactory {
@@ -68,12 +67,8 @@ public class RumorsFactory {
 
     private static void initializeFromRumorsFile() {
 
-        InputStream xmlIs = null;
-        InputStream xsdIs = null;
-
-        try {
-            xmlIs = new BufferedInputStream(RumorsFactory.class.getResourceAsStream(RUMORS_FILE));
-            xsdIs = new BufferedInputStream(RumorsFactory.class.getResourceAsStream(RUMORS_SCHEMA_FILE));
+        try (InputStream xmlIs = new BufferedInputStream(RumorsFactory.class.getResourceAsStream(RUMORS_FILE));
+                InputStream xsdIs = new BufferedInputStream(RumorsFactory.class.getResourceAsStream(RUMORS_SCHEMA_FILE))) {
 
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             dbf.setNamespaceAware(true);
@@ -115,9 +110,6 @@ public class RumorsFactory {
             rumors.setBroadcastAnnounceDelay(attr.getValue());
         } catch (Exception e) {
             LOGGER.error("Failed initializing rumors from file: " + RUMORS_FILE, e);
-        } finally {
-            Closer.close(xmlIs);
-            Closer.close(xsdIs);
         }
     }
 
