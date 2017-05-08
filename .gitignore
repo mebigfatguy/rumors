@@ -1,3 +1,6 @@
 target/
 *~
 *.orig
+.classpath
+.project
+.settings/
