@@ -21,7 +21,7 @@ public class RumorsTest {
             threads[i].start();
         }
 
-        Thread.sleep(10000);
+        Thread.sleep(5000);
 
         for (Thread thread : threads) {
             try {
