@@ -45,12 +45,12 @@ import com.mebigfatguy.rumors.aux.Closer;
 
 public class RumorsImpl implements Rumors {
 
+    private static Logger LOGGER = LoggerFactory.getLogger(RumorsImpl.class);
+
     private static final String DEFAULT_BROADCAST_IP = "228.229.230.231";
     private static final int DEFAULT_DYNAMIC_PORT = 13531;
     private static final int[] DEFAULT_ANNOUNCE_DELAY = { 100, 5000, 5000, 5000, 60000 };
     private static final int MAX_BUFFERED_ENDPOINTS = 4000 / 40;
-
-    private static Logger LOGGER = LoggerFactory.getLogger(RumorsImpl.class);
 
     private Endpoint broadcastEndpoint = new Endpoint(DEFAULT_BROADCAST_IP, DEFAULT_DYNAMIC_PORT);
     private int staticPort = 0;
@@ -73,6 +73,7 @@ public class RumorsImpl implements Rumors {
     public void begin() throws RumorsException {
         synchronized (sync) {
             if (!running) {
+                LOGGER.debug("Beginning rumors");
                 initializeRumorPorts();
                 knownMessageSockets.put(new Endpoint(messageSocket.getInetAddress().getHostAddress(), messageSocket.getLocalPort()), Boolean.TRUE);
 
@@ -126,6 +127,7 @@ public class RumorsImpl implements Rumors {
                     staticBroadcastThread = null;
                     staticReceiveThread = null;
                     running = false;
+                    LOGGER.debug("Ending Rumors");
                 }
             }
         }
@@ -251,6 +253,7 @@ public class RumorsImpl implements Rumors {
                     byte[] message = endPointsToBuffer();
                     DatagramPacket packet = new DatagramPacket(message, message.length, InetAddress.getByName(broadcastEndpoint.getIp()),
                             broadcastEndpoint.getPort());
+                    LOGGER.info("Sending dynamic broadcast packet");
                     broadcastSocket.send(packet);
                 } catch (Exception e) {
                     LOGGER.error("Failed performing broadcast", e);
@@ -268,6 +271,7 @@ public class RumorsImpl implements Rumors {
                 try {
                     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                     broadcastSocket.receive(packet);
+                    LOGGER.info("Receiving dynamic broadcast packet");
 
                     bufferToEndPoints(new ByteArrayInputStream(packet.getData(), 0, packet.getLength()));
                 } catch (Exception e) {
@@ -288,6 +292,7 @@ public class RumorsImpl implements Rumors {
                         --delayIndex;
                     }
 
+                    LOGGER.info("Sending static broadcast packets");
                     for (Endpoint ep : staticEndpoints) {
                         try (Socket s = new Socket(ep.getIp(), ep.getPort()); OutputStream os = s.getOutputStream(); InputStream is = s.getInputStream()) {
                             byte[] buffer = endPointsToBuffer();
@@ -314,6 +319,7 @@ public class RumorsImpl implements Rumors {
                         BufferedInputStream bis = new BufferedInputStream(s.getInputStream());
                         OutputStream os = s.getOutputStream()) {
 
+                    LOGGER.info("Receiving static broadcast packets");
                     bufferToEndPoints(bis);
                     byte[] buffer = endPointsToBuffer();
                     os.write(buffer);

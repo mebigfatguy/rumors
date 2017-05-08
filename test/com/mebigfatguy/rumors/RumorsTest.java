@@ -35,7 +35,7 @@ public class RumorsTest {
 
     static class RumorsClient implements Runnable {
 
-        private static Logger logger = LoggerFactory.getLogger(RumorsClient.class);
+        private static Logger LOGGER = LoggerFactory.getLogger(RumorsClient.class);
 
         @Override
         public void run() {
@@ -48,7 +48,7 @@ public class RumorsTest {
                     Thread.sleep(100);
                 }
             } catch (RumorsException e) {
-                logger.error("Failed with error: ", e);
+                LOGGER.error("Failed with error: ", e);
             } catch (InterruptedException e) {
             } finally {
                 rumor.end();
