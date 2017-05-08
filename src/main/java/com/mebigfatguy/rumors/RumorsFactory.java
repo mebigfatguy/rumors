@@ -53,7 +53,7 @@ public final class RumorsFactory {
     public static final String JAXP_SCHEMA_SOURCE = "http://java.sun.com/xml/jaxp/properties/schemaSource";
     public static final String RUMORS_SCHEMA_NAME = "http://rumors.mebigfatguy.com/1.0/rumors";
     public static final String RUMORS_FILE = "/rumors.xml";
-    public static final String RUMORS_SCHEMA_FILE = "/rumors.xsd";
+    public static final String RUMORS_SCHEMA_FILE = "/com.mebigfatguy/rumors/rumors.xsd";
 
     private static Logger LOGGER = LoggerFactory.getLogger(RumorsFactory.class);
 
