@@ -18,7 +18,10 @@
 package com.mebigfatguy.rumors;
 
 import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -26,9 +29,11 @@ import java.util.List;
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
 import org.slf4j.Logger;
@@ -37,10 +42,11 @@ import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import com.mebigfatguy.rumors.impl.RumorsImpl;
 
-public class RumorsFactory {
+public final class RumorsFactory {
 
     public static final String JAXP_SCHEMA_LANGUAGE = "http://java.sun.com/xml/jaxp/properties/schemaLanguage";
     public static final String W3C_XML_SCHEMA = "http://www.w3.org/2001/XMLSchema";
@@ -51,24 +57,25 @@ public class RumorsFactory {
 
     private static Logger LOGGER = LoggerFactory.getLogger(RumorsFactory.class);
 
-    private static final RumorsImpl rumors;
-
-    static {
-        rumors = new RumorsImpl();
-        initializeFromRumorsFile();
-    }
-
     private RumorsFactory() {
     }
 
-    public static Rumors getRumors() {
-        return rumors;
+    public static Rumors createRumors() {
+        return new RumorsImpl();
     }
 
-    private static void initializeFromRumorsFile() {
+    public static Rumors createRumors(Path rumorsPath) throws IOException {
 
-        try (InputStream xmlIs = new BufferedInputStream(RumorsFactory.class.getResourceAsStream(RUMORS_FILE));
+        try (InputStream is = Files.newInputStream(rumorsPath)) {
+            return createRumors(is);
+        }
+    }
+
+    public static Rumors createRumors(InputStream rumorsStream) throws IOException {
+        try (InputStream xmlIs = new BufferedInputStream(rumorsStream);
                 InputStream xsdIs = new BufferedInputStream(RumorsFactory.class.getResourceAsStream(RUMORS_SCHEMA_FILE))) {
+
+            RumorsImpl rumors = new RumorsImpl();
 
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             dbf.setNamespaceAware(true);
@@ -108,8 +115,10 @@ public class RumorsFactory {
             Attr attr = (Attr) xpe.evaluate(d, XPathConstants.NODE);
 
             rumors.setBroadcastAnnounceDelay(attr.getValue());
-        } catch (Exception e) {
-            LOGGER.error("Failed initializing rumors from file: " + RUMORS_FILE, e);
+
+            return rumors;
+        } catch (SAXException | ParserConfigurationException | XPathExpressionException e) {
+            throw new IOException("Failed to parse rumors configuration file", e);
         }
     }
 
