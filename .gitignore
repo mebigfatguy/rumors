@@ -1,7 +1,3 @@
-classes
-javadoc
-lib
-*.zip
-*.jar
+target/
 *~
 *.orig
