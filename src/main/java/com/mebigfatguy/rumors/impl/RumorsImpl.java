@@ -219,23 +219,33 @@ public class RumorsImpl implements Rumors {
         }
     }
 
-    private void bufferToEndPoints(InputStream is) throws RumorsException {
+    private List<Endpoint> bufferToEndPoints(InputStream is) throws RumorsException {
         try {
             DataInputStream dis = new DataInputStream(new BufferedInputStream(is));
 
+            List<Endpoint> endPoints = new ArrayList<>();
             String ip = dis.readUTF();
             while (ip.length() > 0) {
                 int port = dis.readInt();
 
                 Endpoint ep = new Endpoint(ip, port);
-                if (!knownMessageSockets.containsKey(ep)) {
-                    knownMessageSockets.put(ep, false);
-                }
+                endPoints.add(ep);
+
                 ip = dis.readUTF();
             }
 
+            return endPoints;
+
         } catch (IOException ioe) {
             throw new RumorsException("Failed converting incoming buffer to endpoints", ioe);
+        }
+    }
+
+    private void addEndPoints(List<Endpoint> endPoints) {
+        for (Endpoint ep : endPoints) {
+            if (!knownMessageSockets.containsKey(ep)) {
+                knownMessageSockets.put(ep, false);
+            }
         }
     }
 
@@ -271,9 +281,10 @@ public class RumorsImpl implements Rumors {
                 try {
                     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                     broadcastSocket.receive(packet);
-                    LOGGER.info("Receiving dynamic broadcast packet");
 
-                    bufferToEndPoints(new ByteArrayInputStream(packet.getData(), 0, packet.getLength()));
+                    List<Endpoint> endPoints = bufferToEndPoints(new ByteArrayInputStream(packet.getData(), 0, packet.getLength()));
+                    LOGGER.info("Receiving dynamic broadcast packet {}", endPoints);
+                    addEndPoints(endPoints);
                 } catch (Exception e) {
                     LOGGER.error("Failed receiving broadcast", e);
                 }
@@ -319,15 +330,16 @@ public class RumorsImpl implements Rumors {
                         BufferedInputStream bis = new BufferedInputStream(s.getInputStream());
                         OutputStream os = s.getOutputStream()) {
 
-                    LOGGER.info("Receiving static broadcast packets");
-                    bufferToEndPoints(bis);
+                    List<Endpoint> endPoints = bufferToEndPoints(bis);
+                    LOGGER.info("Receiving static broadcast packets {}", endPoints);
+                    addEndPoints(endPoints);
+
                     byte[] buffer = endPointsToBuffer();
                     os.write(buffer);
                     os.flush();
                 } catch (Exception e) {
                     LOGGER.error("Failed receiving static discovery request", e);
                 }
-
             }
         }
     }
