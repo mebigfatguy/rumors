@@ -253,7 +253,7 @@ public class RumorsImpl implements Rumors {
                     byte[] message = endPointsToBuffer();
                     DatagramPacket packet = new DatagramPacket(message, message.length, InetAddress.getByName(broadcastEndpoint.getIp()),
                             broadcastEndpoint.getPort());
-                    LOGGER.info("Sending dynamic broadcast packet");
+                    LOGGER.info("Sending dynamic broadcast packet {}", knownMessageSockets.keySet());
                     broadcastSocket.send(packet);
                 } catch (Exception e) {
                     LOGGER.error("Failed performing broadcast", e);
@@ -292,7 +292,7 @@ public class RumorsImpl implements Rumors {
                         --delayIndex;
                     }
 
-                    LOGGER.info("Sending static broadcast packets");
+                    LOGGER.info("Sending static broadcast packets {}", knownMessageSockets.keySet());
                     for (Endpoint ep : staticEndpoints) {
                         try (Socket s = new Socket(ep.getIp(), ep.getPort()); OutputStream os = s.getOutputStream(); InputStream is = s.getInputStream()) {
                             byte[] buffer = endPointsToBuffer();
