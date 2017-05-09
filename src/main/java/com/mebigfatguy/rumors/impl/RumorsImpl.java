@@ -30,6 +30,7 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +68,7 @@ public class RumorsImpl implements Rumors {
     private MulticastSocket broadcastSocket;
     private ServerSocket messageSocket;
 
-    private final Map<Endpoint, Boolean> knownMessageSockets = new ConcurrentHashMap<>();
+    private final Map<Endpoint, Instant> knownMessageSockets = new ConcurrentHashMap<>();
 
     @Override
     public void begin() throws RumorsException {
@@ -75,7 +76,7 @@ public class RumorsImpl implements Rumors {
             if (!running) {
                 LOGGER.debug("Beginning rumors");
                 initializeRumorPorts();
-                knownMessageSockets.put(new Endpoint(messageSocket.getInetAddress().getHostAddress(), messageSocket.getLocalPort()), Boolean.TRUE);
+                knownMessageSockets.put(new Endpoint(messageSocket.getInetAddress().getHostAddress(), messageSocket.getLocalPort()), Instant.now());
 
                 dynamicBroadcastThread = new Thread(new DynamicBroadcastRunnable());
                 dynamicBroadcastThread.setName("Rumor Broadcast");
@@ -198,6 +199,7 @@ public class RumorsImpl implements Rumors {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             DataOutputStream dos = new DataOutputStream(baos);
 
+            dos.writeChar('J');
             int written = 0;
 
             for (Endpoint ep : knownMessageSockets.keySet()) {
@@ -219,11 +221,12 @@ public class RumorsImpl implements Rumors {
         }
     }
 
-    private List<Endpoint> bufferToEndPoints(InputStream is) throws RumorsException {
+    private EndpointMessage bufferToEndPoints(InputStream is) throws RumorsException {
         try {
             DataInputStream dis = new DataInputStream(new BufferedInputStream(is));
 
             List<Endpoint> endPoints = new ArrayList<>();
+            char action = dis.readChar();
             String ip = dis.readUTF();
             while (ip.length() > 0) {
                 int port = dis.readInt();
@@ -234,7 +237,7 @@ public class RumorsImpl implements Rumors {
                 ip = dis.readUTF();
             }
 
-            return endPoints;
+            return new EndpointMessage(action == 'J', endPoints);
 
         } catch (IOException ioe) {
             throw new RumorsException("Failed converting incoming buffer to endpoints", ioe);
@@ -244,8 +247,14 @@ public class RumorsImpl implements Rumors {
     private void addEndPoints(List<Endpoint> endPoints) {
         for (Endpoint ep : endPoints) {
             if (!knownMessageSockets.containsKey(ep)) {
-                knownMessageSockets.put(ep, false);
+                knownMessageSockets.put(ep, Instant.now());
             }
+        }
+    }
+
+    private void removeEndPoints(List<Endpoint> endPoints) {
+        for (Endpoint ep : endPoints) {
+            knownMessageSockets.remove(ep);
         }
     }
 
@@ -282,9 +291,13 @@ public class RumorsImpl implements Rumors {
                     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                     broadcastSocket.receive(packet);
 
-                    List<Endpoint> endPoints = bufferToEndPoints(new ByteArrayInputStream(packet.getData(), 0, packet.getLength()));
-                    LOGGER.info("Receiving dynamic broadcast packet {}", endPoints);
-                    addEndPoints(endPoints);
+                    EndpointMessage message = bufferToEndPoints(new ByteArrayInputStream(packet.getData(), 0, packet.getLength()));
+                    LOGGER.info("Receiving dynamic broadcast packet {}", message);
+                    if (message.isAdding()) {
+                        addEndPoints(message.getEndpoints());
+                    } else {
+                        removeEndPoints(message.getEndpoints());
+                    }
                 } catch (Exception e) {
                     LOGGER.error("Failed receiving broadcast", e);
                 }
@@ -330,9 +343,13 @@ public class RumorsImpl implements Rumors {
                         BufferedInputStream bis = new BufferedInputStream(s.getInputStream());
                         OutputStream os = s.getOutputStream()) {
 
-                    List<Endpoint> endPoints = bufferToEndPoints(bis);
-                    LOGGER.info("Receiving static broadcast packets {}", endPoints);
-                    addEndPoints(endPoints);
+                    EndpointMessage message = bufferToEndPoints(bis);
+                    LOGGER.info("Receiving static broadcast packets {}", message);
+                    if (message.isAdding()) {
+                        addEndPoints(message.getEndpoints());
+                    } else {
+                        removeEndPoints(message.getEndpoints());
+                    }
 
                     byte[] buffer = endPointsToBuffer();
                     os.write(buffer);
