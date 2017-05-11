@@ -32,6 +32,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,6 +56,7 @@ public class RumorsImpl implements Rumors {
     private static final int MAX_BUFFERED_ENDPOINTS = 4000 / 40;
 
     private Endpoint broadcastEndpoint = new Endpoint(DEFAULT_BROADCAST_IP, DEFAULT_DYNAMIC_PORT);
+    private Endpoint myEndpoint;
     private int staticPort = 0;
     private List<Endpoint> staticEndpoints = new ArrayList<>();
     private int[] broadcastAnnounce = DEFAULT_ANNOUNCE_DELAY;
@@ -76,7 +79,8 @@ public class RumorsImpl implements Rumors {
             if (!running) {
                 LOGGER.debug("Beginning rumors");
                 initializeRumorPorts();
-                knownMessageSockets.put(new Endpoint(messageSocket.getInetAddress().getHostAddress(), messageSocket.getLocalPort()), Instant.now());
+                myEndpoint = new Endpoint(messageSocket.getInetAddress().getHostAddress(), messageSocket.getLocalPort());
+                knownMessageSockets.put(myEndpoint, Instant.now());
 
                 dynamicBroadcastThread = new Thread(new DynamicBroadcastRunnable());
                 dynamicBroadcastThread.setName("Rumor Broadcast");
@@ -106,8 +110,6 @@ public class RumorsImpl implements Rumors {
         synchronized (sync) {
             if (running) {
                 try {
-                    terminateRumorPorts();
-
                     dynamicBroadcastThread.interrupt();
                     dynamicReceiveThread.interrupt();
                     if (staticBroadcastThread != null) {
@@ -121,7 +123,17 @@ public class RumorsImpl implements Rumors {
                     dynamicBroadcastThread.join();
                     dynamicReceiveThread.join();
 
-                } catch (InterruptedException ie) {
+                    byte[] message = endPointsToBuffer(Arrays.asList(myEndpoint));
+                    DatagramPacket packet = new DatagramPacket(message, message.length, InetAddress.getByName(broadcastEndpoint.getIp()),
+                            broadcastEndpoint.getPort());
+                    LOGGER.info("Sending dynamic broadcast packet {}", knownMessageSockets.keySet());
+                    broadcastSocket.send(packet);
+
+                    terminateRumorPorts();
+
+                } catch (IOException | RumorsException e) {
+                    LOGGER.error("Failure closing down rumors", e);
+                } catch (InterruptedException e) {
                 } finally {
                     dynamicBroadcastThread = null;
                     dynamicReceiveThread = null;
@@ -194,7 +206,7 @@ public class RumorsImpl implements Rumors {
         }
     }
 
-    private byte[] endPointsToBuffer() throws RumorsException {
+    private byte[] endPointsToBuffer(Collection<Endpoint> endpoints) throws RumorsException {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             DataOutputStream dos = new DataOutputStream(baos);
@@ -202,7 +214,7 @@ public class RumorsImpl implements Rumors {
             dos.writeChar('J');
             int written = 0;
 
-            for (Endpoint ep : knownMessageSockets.keySet()) {
+            for (Endpoint ep : endpoints) {
                 if (written >= MAX_BUFFERED_ENDPOINTS) {
                     break;
                 }
@@ -269,7 +281,7 @@ public class RumorsImpl implements Rumors {
                         --delayIndex;
                     }
 
-                    byte[] message = endPointsToBuffer();
+                    byte[] message = endPointsToBuffer(knownMessageSockets.keySet());
                     DatagramPacket packet = new DatagramPacket(message, message.length, InetAddress.getByName(broadcastEndpoint.getIp()),
                             broadcastEndpoint.getPort());
                     LOGGER.info("Sending dynamic broadcast packet {}", knownMessageSockets.keySet());
@@ -306,6 +318,7 @@ public class RumorsImpl implements Rumors {
     }
 
     private class StaticBroadcastRunnable implements Runnable {
+
         @Override
         public void run() {
             int delayIndex = 0;
@@ -319,7 +332,7 @@ public class RumorsImpl implements Rumors {
                     LOGGER.info("Sending static broadcast packets {}", knownMessageSockets.keySet());
                     for (Endpoint ep : staticEndpoints) {
                         try (Socket s = new Socket(ep.getIp(), ep.getPort()); OutputStream os = s.getOutputStream(); InputStream is = s.getInputStream()) {
-                            byte[] buffer = endPointsToBuffer();
+                            byte[] buffer = endPointsToBuffer(knownMessageSockets.keySet());
                             os.write(buffer);
                             os.flush();
                             bufferToEndPoints(is);
@@ -351,7 +364,7 @@ public class RumorsImpl implements Rumors {
                         removeEndPoints(message.getEndpoints());
                     }
 
-                    byte[] buffer = endPointsToBuffer();
+                    byte[] buffer = endPointsToBuffer(knownMessageSockets.keySet());
                     os.write(buffer);
                     os.flush();
                 } catch (Exception e) {
