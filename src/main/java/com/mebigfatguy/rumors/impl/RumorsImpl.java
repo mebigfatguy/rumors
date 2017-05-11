@@ -361,7 +361,13 @@ public class RumorsImpl implements Rumors {
                         try (Socket s = new Socket(ep.getIp(), ep.getPort()); OutputStream os = s.getOutputStream(); InputStream is = s.getInputStream()) {
                             os.write(buffer);
                             os.flush();
-                            bufferToEndPoints(is);
+                            EndpointMessage message = bufferToEndPoints(is);
+                            LOGGER.info("Receiving static broadcast packet {}", message);
+                            if (message.isAdding()) {
+                                addEndPoints(message.getEndpoints());
+                            } else {
+                                removeEndPoints(message.getEndpoints());
+                            }
                         } catch (IOException ioe) {
                         }
                     }
