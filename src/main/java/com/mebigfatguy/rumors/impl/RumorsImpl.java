@@ -356,9 +356,9 @@ public class RumorsImpl implements Rumors {
                     }
 
                     LOGGER.info("Sending static broadcast packets {}", knownMessageSockets.keySet());
+                    byte[] buffer = endpointsToBuffer(knownMessageSockets.keySet(), true);
                     for (Endpoint ep : staticEndpoints) {
                         try (Socket s = new Socket(ep.getIp(), ep.getPort()); OutputStream os = s.getOutputStream(); InputStream is = s.getInputStream()) {
-                            byte[] buffer = endpointsToBuffer(knownMessageSockets.keySet(), true);
                             os.write(buffer);
                             os.flush();
                             bufferToEndPoints(is);
