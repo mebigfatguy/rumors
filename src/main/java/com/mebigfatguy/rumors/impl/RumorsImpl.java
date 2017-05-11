@@ -111,17 +111,12 @@ public class RumorsImpl implements Rumors {
             if (running) {
                 try {
                     dynamicBroadcastThread.interrupt();
-                    dynamicReceiveThread.interrupt();
+
                     if (staticBroadcastThread != null) {
                         staticBroadcastThread.interrupt();
                         staticBroadcastThread.join();
                     }
-                    if (staticReceiveThread != null) {
-                        staticReceiveThread.interrupt();
-                        staticReceiveThread.join();
-                    }
                     dynamicBroadcastThread.join();
-                    dynamicReceiveThread.join();
 
                     byte[] message = endPointsToBuffer(Arrays.asList(myEndpoint));
                     DatagramPacket packet = new DatagramPacket(message, message.length, InetAddress.getByName(broadcastEndpoint.getIp()),
@@ -130,6 +125,14 @@ public class RumorsImpl implements Rumors {
                     broadcastSocket.send(packet);
 
                     terminateRumorPorts();
+
+                    if (staticReceiveThread != null) {
+                        staticReceiveThread.interrupt();
+                        staticReceiveThread.join();
+                    }
+
+                    dynamicReceiveThread.interrupt();
+                    dynamicReceiveThread.join();
 
                 } catch (IOException | RumorsException e) {
                     LOGGER.error("Failure closing down rumors", e);
@@ -286,6 +289,8 @@ public class RumorsImpl implements Rumors {
                             broadcastEndpoint.getPort());
                     LOGGER.info("Sending dynamic broadcast packet {}", knownMessageSockets.keySet());
                     broadcastSocket.send(packet);
+                } catch (InterruptedException e) {
+                    return;
                 } catch (Exception e) {
                     LOGGER.error("Failed performing broadcast", e);
                 }
@@ -339,6 +344,8 @@ public class RumorsImpl implements Rumors {
                         } catch (IOException ioe) {
                         }
                     }
+                } catch (InterruptedException e) {
+                    return;
                 } catch (Exception e) {
                     LOGGER.error("Failed performing broadcast", e);
                 }
