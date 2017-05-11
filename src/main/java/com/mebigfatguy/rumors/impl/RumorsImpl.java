@@ -386,15 +386,18 @@ public class RumorsImpl implements Rumors {
 
                     EndpointMessage message = bufferToEndPoints(bis);
                     LOGGER.info("Receiving static broadcast packets {}", message);
+                    int existingSize = knownMessageSockets.size();
                     if (message.isAdding()) {
                         addEndPoints(message.getEndpoints());
                     } else {
                         removeEndPoints(message.getEndpoints());
                     }
 
-                    byte[] buffer = endpointsToBuffer(knownMessageSockets.keySet(), true);
-                    os.write(buffer);
-                    os.flush();
+                    if (existingSize != knownMessageSockets.size()) {
+                        byte[] buffer = endpointsToBuffer(knownMessageSockets.keySet(), true);
+                        os.write(buffer);
+                        os.flush();
+                    }
                 } catch (Exception e) {
                     LOGGER.error("Failed receiving static discovery request", e);
                 }
