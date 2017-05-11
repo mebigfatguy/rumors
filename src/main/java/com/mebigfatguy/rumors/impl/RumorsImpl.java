@@ -118,7 +118,7 @@ public class RumorsImpl implements Rumors {
                     }
                     dynamicBroadcastThread.join();
 
-                    byte[] message = endPointsToBuffer(Arrays.asList(myEndpoint));
+                    byte[] message = endPointsToBuffer(Arrays.asList(myEndpoint), false);
                     DatagramPacket packet = new DatagramPacket(message, message.length, InetAddress.getByName(broadcastEndpoint.getIp()),
                             broadcastEndpoint.getPort());
                     LOGGER.info("Sending dynamic broadcast packet {}", knownMessageSockets.keySet());
@@ -209,12 +209,12 @@ public class RumorsImpl implements Rumors {
         }
     }
 
-    private byte[] endPointsToBuffer(Collection<Endpoint> endpoints) throws RumorsException {
+    private byte[] endPointsToBuffer(Collection<Endpoint> endpoints, boolean joining) throws RumorsException {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             DataOutputStream dos = new DataOutputStream(baos);
 
-            dos.writeChar('J');
+            dos.writeChar(joining ? 'J' : 'L');
             int written = 0;
 
             for (Endpoint ep : endpoints) {
@@ -284,7 +284,7 @@ public class RumorsImpl implements Rumors {
                         --delayIndex;
                     }
 
-                    byte[] message = endPointsToBuffer(knownMessageSockets.keySet());
+                    byte[] message = endPointsToBuffer(knownMessageSockets.keySet(), true);
                     DatagramPacket packet = new DatagramPacket(message, message.length, InetAddress.getByName(broadcastEndpoint.getIp()),
                             broadcastEndpoint.getPort());
                     LOGGER.info("Sending dynamic broadcast packet {}", knownMessageSockets.keySet());
@@ -337,7 +337,7 @@ public class RumorsImpl implements Rumors {
                     LOGGER.info("Sending static broadcast packets {}", knownMessageSockets.keySet());
                     for (Endpoint ep : staticEndpoints) {
                         try (Socket s = new Socket(ep.getIp(), ep.getPort()); OutputStream os = s.getOutputStream(); InputStream is = s.getInputStream()) {
-                            byte[] buffer = endPointsToBuffer(knownMessageSockets.keySet());
+                            byte[] buffer = endPointsToBuffer(knownMessageSockets.keySet(), true);
                             os.write(buffer);
                             os.flush();
                             bufferToEndPoints(is);
@@ -371,7 +371,7 @@ public class RumorsImpl implements Rumors {
                         removeEndPoints(message.getEndpoints());
                     }
 
-                    byte[] buffer = endPointsToBuffer(knownMessageSockets.keySet());
+                    byte[] buffer = endPointsToBuffer(knownMessageSockets.keySet(), true);
                     os.write(buffer);
                     os.flush();
                 } catch (Exception e) {
