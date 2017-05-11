@@ -129,7 +129,7 @@ public class RumorsImpl implements Rumors {
                     }
                     dynamicBroadcastThread.join();
 
-                    byte[] message = endPointsToBuffer(Arrays.asList(myEndpoint), false);
+                    byte[] message = endpointsToBuffer(Arrays.asList(myEndpoint), false);
                     DatagramPacket packet = new DatagramPacket(message, message.length, InetAddress.getByName(broadcastEndpoint.getIp()),
                             broadcastEndpoint.getPort());
                     LOGGER.info("Sending dynamic broadcast packet {}", knownMessageSockets.keySet());
@@ -230,7 +230,7 @@ public class RumorsImpl implements Rumors {
         }
     }
 
-    private byte[] endPointsToBuffer(Collection<Endpoint> endpoints, boolean joining) throws RumorsException {
+    private byte[] endpointsToBuffer(Collection<Endpoint> endpoints, boolean joining) throws RumorsException {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             DataOutputStream dos = new DataOutputStream(baos);
@@ -261,35 +261,35 @@ public class RumorsImpl implements Rumors {
         try {
             DataInputStream dis = new DataInputStream(new BufferedInputStream(is));
 
-            List<Endpoint> endPoints = new ArrayList<>();
+            List<Endpoint> endpoints = new ArrayList<>();
             char action = dis.readChar();
             String ip = dis.readUTF();
             while (ip.length() > 0) {
                 int port = dis.readInt();
 
                 Endpoint ep = new Endpoint(ip, port);
-                endPoints.add(ep);
+                endpoints.add(ep);
 
                 ip = dis.readUTF();
             }
 
-            return new EndpointMessage(action == 'J', endPoints);
+            return new EndpointMessage(action == 'J', endpoints);
 
         } catch (IOException ioe) {
             throw new RumorsException("Failed converting incoming buffer to endpoints", ioe);
         }
     }
 
-    private void addEndPoints(List<Endpoint> endPoints) {
-        for (Endpoint ep : endPoints) {
+    private void addEndPoints(List<Endpoint> endpoints) {
+        for (Endpoint ep : endpoints) {
             if (!knownMessageSockets.containsKey(ep)) {
                 knownMessageSockets.put(ep, Instant.now());
             }
         }
     }
 
-    private void removeEndPoints(List<Endpoint> endPoints) {
-        for (Endpoint ep : endPoints) {
+    private void removeEndPoints(List<Endpoint> endpoints) {
+        for (Endpoint ep : endpoints) {
             knownMessageSockets.remove(ep);
         }
     }
@@ -305,7 +305,7 @@ public class RumorsImpl implements Rumors {
                         --delayIndex;
                     }
 
-                    byte[] message = endPointsToBuffer(knownMessageSockets.keySet(), true);
+                    byte[] message = endpointsToBuffer(knownMessageSockets.keySet(), true);
                     DatagramPacket packet = new DatagramPacket(message, message.length, InetAddress.getByName(broadcastEndpoint.getIp()),
                             broadcastEndpoint.getPort());
                     LOGGER.info("Sending dynamic broadcast packet {}", knownMessageSockets.keySet());
@@ -358,7 +358,7 @@ public class RumorsImpl implements Rumors {
                     LOGGER.info("Sending static broadcast packets {}", knownMessageSockets.keySet());
                     for (Endpoint ep : staticEndpoints) {
                         try (Socket s = new Socket(ep.getIp(), ep.getPort()); OutputStream os = s.getOutputStream(); InputStream is = s.getInputStream()) {
-                            byte[] buffer = endPointsToBuffer(knownMessageSockets.keySet(), true);
+                            byte[] buffer = endpointsToBuffer(knownMessageSockets.keySet(), true);
                             os.write(buffer);
                             os.flush();
                             bufferToEndPoints(is);
@@ -392,7 +392,7 @@ public class RumorsImpl implements Rumors {
                         removeEndPoints(message.getEndpoints());
                     }
 
-                    byte[] buffer = endPointsToBuffer(knownMessageSockets.keySet(), true);
+                    byte[] buffer = endpointsToBuffer(knownMessageSockets.keySet(), true);
                     os.write(buffer);
                     os.flush();
                 } catch (Exception e) {
