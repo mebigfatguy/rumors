@@ -30,6 +30,7 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,6 +54,8 @@ public class RumorsImpl implements Rumors {
     private static final String DEFAULT_BROADCAST_IP = "228.229.230.231";
     private static final int DEFAULT_DYNAMIC_PORT = 13531;
     private static final int[] DEFAULT_ANNOUNCE_DELAY = { 100, 5000, 5000, 5000, 60000 };
+    private static final int DEFAULT_MAINTENANCE_SLEEP_TIME = 60000;
+    private static final int DEFAULT_MAINTENANCE_STALE_TIME = 5 * 60000;
     private static final int MAX_BUFFERED_ENDPOINTS = 4000 / 40;
 
     private Endpoint broadcastEndpoint = new Endpoint(DEFAULT_BROADCAST_IP, DEFAULT_DYNAMIC_PORT);
@@ -66,6 +69,7 @@ public class RumorsImpl implements Rumors {
     private Thread dynamicReceiveThread;
     private Thread staticBroadcastThread;
     private Thread staticReceiveThread;
+    private Thread maintenanceThread;
     private boolean running = false;
     private ServerSocket staticDiscoverySocket;
     private MulticastSocket broadcastSocket;
@@ -77,29 +81,33 @@ public class RumorsImpl implements Rumors {
     public void begin() throws RumorsException {
         synchronized (sync) {
             if (!running) {
-                LOGGER.debug("Beginning rumors");
+                LOGGER.info("Beginning rumors");
                 initializeRumorPorts();
                 myEndpoint = new Endpoint(messageSocket.getInetAddress().getHostAddress(), messageSocket.getLocalPort());
                 knownMessageSockets.put(myEndpoint, Instant.now());
 
                 dynamicBroadcastThread = new Thread(new DynamicBroadcastRunnable());
-                dynamicBroadcastThread.setName("Rumor Broadcast");
+                dynamicBroadcastThread.setName("Rumor Dynamic Broadcast");
                 dynamicBroadcastThread.start();
                 dynamicReceiveThread = new Thread(new DynamicReceiveRunnable());
-                dynamicReceiveThread.setName("Rumor Receive");
+                dynamicReceiveThread.setName("Rumor Dynamic Receive");
                 dynamicReceiveThread.start();
 
                 if (staticPort > 0) {
                     staticReceiveThread = new Thread(new StaticReceiveRunnable());
-                    staticReceiveThread.setName("Static Receive");
+                    staticReceiveThread.setName("Rumor Static Receive");
                     staticReceiveThread.start();
                 }
 
                 if (!staticEndpoints.isEmpty()) {
                     staticBroadcastThread = new Thread(new StaticBroadcastRunnable());
-                    staticBroadcastThread.setName("Static Discovery");
+                    staticBroadcastThread.setName("Rumor Static Discovery");
                     staticBroadcastThread.start();
                 }
+
+                maintenanceThread = new Thread(new MaintenanceRunnable());
+                maintenanceThread.setName("Rumor Maintenance");
+                maintenanceThread.start();
                 running = true;
             }
         }
@@ -110,6 +118,9 @@ public class RumorsImpl implements Rumors {
         synchronized (sync) {
             if (running) {
                 try {
+                    maintenanceThread.interrupt();
+                    maintenanceThread.join();
+
                     dynamicBroadcastThread.interrupt();
 
                     if (staticBroadcastThread != null) {
@@ -143,7 +154,7 @@ public class RumorsImpl implements Rumors {
                     staticBroadcastThread = null;
                     staticReceiveThread = null;
                     running = false;
-                    LOGGER.debug("Ending Rumors");
+                    LOGGER.info("Ending Rumors");
                 }
             }
         }
@@ -387,6 +398,30 @@ public class RumorsImpl implements Rumors {
                 } catch (Exception e) {
                     LOGGER.error("Failed receiving static discovery request", e);
                 }
+            }
+        }
+    }
+
+    private class MaintenanceRunnable implements Runnable {
+        @Override
+        public void run() {
+
+            try {
+                while (!Thread.interrupted()) {
+
+                    Thread.sleep(DEFAULT_MAINTENANCE_SLEEP_TIME);
+
+                    Instant now = Instant.now();
+                    for (Map.Entry<Endpoint, Instant> entry : knownMessageSockets.entrySet()) {
+                        if (Duration.between(entry.getValue(), now).toMillis() > DEFAULT_MAINTENANCE_STALE_TIME) {
+
+                            knownMessageSockets.remove(entry.getKey());
+                            // broadcast it?
+                        }
+                    }
+                }
+            } catch (InterruptedException e) {
+
             }
         }
     }
