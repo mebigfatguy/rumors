@@ -149,6 +149,16 @@ public class RumorsImpl implements Rumors {
         }
     }
 
+    @Override
+    public List<Endpoint> getEndpoints() {
+        return new ArrayList<>(knownMessageSockets.keySet());
+    }
+
+    @Override
+    public void reportBadInput(Endpoint endpoint) {
+        knownMessageSockets.remove(endpoint);
+    }
+
     public void setBroadcastEndpoint(Endpoint bcEndpoint) {
         broadcastEndpoint = bcEndpoint;
     }
