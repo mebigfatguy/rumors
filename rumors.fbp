@@ -1,0 +1,5 @@
+<Project projectName="rumors">
+  <Jar>./target/classes</Jar>
+  <AuxClasspathEntry>../../.m2/repository/org/slf4j/slf4j-api/1.7.25/slf4j-api-1.7.25.jar</AuxClasspathEntry>
+  <SrcDir>./src/main/java</SrcDir>
+</Project>
