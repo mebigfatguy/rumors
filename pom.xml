@@ -13,7 +13,7 @@
 		<version>5</version>
 	</parent>
 
-	<name>Time agent</name>
+	<name>rumors</name>
 	<description>a simple discovery/connection protocol</description>
 	<url>http://rumors.mebigfatguy.com</url>
 	<inceptionYear>2011</inceptionYear>
@@ -33,6 +33,17 @@
 		</license>
 	</licenses>
 
+    <scm>
+        <connection>scm:git:https://github.com/mebigfatguy/rumors/</connection>
+        <developerConnection>scm:git:https://github.com/mebigfatguy/rumors/</developerConnection>
+        <url>https://github.com/mebigfatguy/rumors/</url>
+    </scm>
+    
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/mebigfatguy/rumors/issues/</url>
+    </issueManagement>
+    
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
