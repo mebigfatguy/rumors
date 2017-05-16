@@ -294,6 +294,11 @@ public class RumorsImpl implements Rumors {
         }
     }
 
+    @Override
+    public String toString() {
+        return "[knownMessageSockets: " + knownMessageSockets + "]";
+    }
+
     private class DynamicBroadcastRunnable implements Runnable {
         @Override
         public void run() {
