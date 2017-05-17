@@ -116,6 +116,11 @@ public final class RumorsFactory {
 
             rumors.setBroadcastAnnounceDelay(attr.getValue());
 
+            xpe = xp.compile("/ru:rumors/staleTime/text()");
+            long staleTime = ((Number) xpe.evaluate(d, XPathConstants.NUMBER)).longValue();
+
+            rumors.setEndpointStaleTime(staleTime);
+
             return rumors;
         } catch (SAXException | ParserConfigurationException | XPathExpressionException e) {
             throw new IOException("Failed to parse rumors configuration file", e);

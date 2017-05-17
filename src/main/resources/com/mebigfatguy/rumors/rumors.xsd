@@ -29,6 +29,7 @@
 			<xsd:element name="static" type="ru:StaticType" minOccurs="0"/>
 			<xsd:element name="point2point" type="ru:Point2PointType" minOccurs="0"/>
 			<xsd:element name="announce" type="ru:AnnounceType" minOccurs="0"/>
+			<xsd:element name="staletime" type="xsd:nonNegativeInteger" default="300000"/>
 		</xsd:sequence>
 	</xsd:complexType>
 	

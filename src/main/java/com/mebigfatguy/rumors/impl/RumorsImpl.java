@@ -54,7 +54,6 @@ public class RumorsImpl implements Rumors {
     private static final String DEFAULT_BROADCAST_IP = "228.229.230.231";
     private static final int DEFAULT_DYNAMIC_PORT = 13531;
     private static final int[] DEFAULT_ANNOUNCE_DELAY = { 100, 5000, 5000, 5000, 60000 };
-    private static final int DEFAULT_MAINTENANCE_SLEEP_TIME = 60000;
     private static final int DEFAULT_MAINTENANCE_STALE_TIME = 5 * 60000;
     private static final int MAX_BUFFERED_ENDPOINTS = 4000 / 40;
 
@@ -63,6 +62,7 @@ public class RumorsImpl implements Rumors {
     private int staticPort = 0;
     private List<Endpoint> staticEndpoints = new ArrayList<>();
     private int[] broadcastAnnounce = DEFAULT_ANNOUNCE_DELAY;
+    private long endpointStaleTime = DEFAULT_MAINTENANCE_STALE_TIME;
 
     private final Object sync = new Object();
     private Thread dynamicBroadcastThread;
@@ -190,6 +190,10 @@ public class RumorsImpl implements Rumors {
         for (String delay : delays) {
             broadcastAnnounce[i++] = Integer.parseInt(delay);
         }
+    }
+
+    public void setEndpointStaleTime(long time) {
+        endpointStaleTime = time;
     }
 
     private void initializeRumorPorts() throws RumorsException {
@@ -420,14 +424,15 @@ public class RumorsImpl implements Rumors {
         @Override
         public void run() {
 
+            long sleepTime = endpointStaleTime / 5;
             try {
                 while (!Thread.interrupted()) {
 
-                    Thread.sleep(DEFAULT_MAINTENANCE_SLEEP_TIME);
+                    Thread.sleep(sleepTime);
 
                     Instant now = Instant.now();
                     for (Map.Entry<Endpoint, Instant> entry : knownMessageSockets.entrySet()) {
-                        if (Duration.between(entry.getValue(), now).toMillis() > DEFAULT_MAINTENANCE_STALE_TIME) {
+                        if (Duration.between(entry.getValue(), now).toMillis() > endpointStaleTime) {
 
                             knownMessageSockets.remove(entry.getKey());
                             // broadcast it?
